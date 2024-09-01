@@ -48,20 +48,18 @@ namespace EnergySystemInitiator
 
             // Search for the ENSYS DLL
             var existingDll = Directory.GetFiles(directory, "ENSYS_*.dll").FirstOrDefault();
-            double existingVersion = 0;
+            int existingVersion = 0;
 
             if (existingDll != null)
             {
                 // Extract the version from the existing DLL's name
                 var versionString = Path.GetFileNameWithoutExtension(existingDll).Split('_')[1];
-                double.TryParse(versionString, NumberStyles.Any, CultureInfo.InvariantCulture, out existingVersion);
+                int.TryParse(versionString, NumberStyles.Any, CultureInfo.InvariantCulture, out existingVersion);
             }
 
             bool downloadSuccess = false;
             string finalDllPath = null;
-
-            if (existingVersion == 0) // No ENSYS DLL found, try to download it
-            {
+            Debug.Log("Existing version " + existingVersion);         
                 using (var webClient = new WebClient())
                 {
                     try
@@ -75,10 +73,16 @@ namespace EnergySystemInitiator
                         var endIndex = json.IndexOf('}', startIndex);
                         var versionString = json.Substring(startIndex, endIndex - startIndex).Trim();
 
-                        // Convert the extracted version string to a double
-                        double latestVersion;
-                        double.TryParse(versionString, NumberStyles.Any, CultureInfo.InvariantCulture, out latestVersion);
+                        
 
+                        // Convert the extracted version string to a double
+                        int latestVersion;
+                    int.TryParse(versionString, NumberStyles.Any, CultureInfo.InvariantCulture, out latestVersion);
+
+                        Debug.Log("got version from git" + latestVersion);
+
+                    if(latestVersion > existingVersion)
+                    {
                         // Download the new DLL
                         var downloadUrl = "https://github.com/AlibardaWasTaken/BatrixEnergySystem/raw/main/ENSYS.dll";
                         var tempPath = Path.Combine(directory, "ENSYS.dll");
@@ -97,7 +101,11 @@ namespace EnergySystemInitiator
                         // Rename the new DLL
                         File.Move(tempPath, newDllPath);
                         finalDllPath = newDllPath;
+                   
                         downloadSuccess = true;
+                    }
+
+
                     }
                     catch (WebException e )
                     {
@@ -106,7 +114,7 @@ namespace EnergySystemInitiator
                         downloadSuccess = false;
                     }
                 }
-            }
+            
 
             if (downloadSuccess == false)
             {
