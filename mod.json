@@ -1,0 +1,19 @@
+{
+  "Name": "ENERGY SYSTEM",
+  "Author": "Batrix Studio",
+  "Description": "",
+  "ModVersion": "1.1",
+  "GameVersion": "1.26+",
+  "ThumbnailPath": "thumb.png",
+  "EntryPoint": "BATRIXENERGYSYSTEM.Entry",
+  "Tags": [
+    "Utility",
+    "Fun"
+  ],
+  "Scripts": [
+    "EntryDll.cs"
+  ],
+  "Active": true,
+  "UGCIdentity": null,
+  "CreatorUGCIdentity": "2308911224"
+}
