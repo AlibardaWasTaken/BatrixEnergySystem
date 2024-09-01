@@ -20,6 +20,7 @@ namespace EnergySystemInitiator
             {
                var gm = new GameObject("BATRIX_ENERGY_SYS_INIT");
                 gm.AddComponent<InitiatorCore>();
+                Debug.Log("Created EnCore");
             }
         }
 
@@ -40,7 +41,7 @@ namespace EnergySystemInitiator
             }
 
             instance = this;
-
+            Debug.Log("EnCore Became Instance");
             // Get the directory of the current assembly
             var assemblyLocation = Assembly.GetAssembly(typeof(Map)).Location;
             var directory = Path.GetDirectoryName(assemblyLocation);
@@ -156,7 +157,9 @@ namespace EnergySystemInitiator
                     Debug.LogError($"Failed to load assembly from {finalDllPath}: {ex.Message}");
                 }
             }
+            Debug.Log("EnCore Initiated");
         }
+
     }
 
     public class VersionInfo

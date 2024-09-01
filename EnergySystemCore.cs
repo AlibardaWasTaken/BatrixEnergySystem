@@ -8,11 +8,11 @@ namespace ENSYS
 {
     public static class EnergySystemCore
     {
-
         public static Dictionary<Transform, EnergySystem> EnergySystemsUsers = new Dictionary<Transform, EnergySystem>();
+
         public static Component GetEnergySystem(Transform target)
         {
-            if(EnergySystemsUsers.ContainsKey(target.root) == true)
+            if (EnergySystemsUsers.ContainsKey(target.root) == true)
             {
                 return EnergySystemsUsers[target.root];
             }
@@ -22,20 +22,16 @@ namespace ENSYS
             }
         }
 
-
-
-
-
         public static Component SetUpEnergySystem(Transform target, int MaxEnergy, int RegenEnergy, float RegenTime, bool StartMax, System.Action<GameObject> OnEndAction)
         {
             if (EnergySystemsUsers.ContainsKey(target.root) == false)
             {
                 var newsystem = target.root.gameObject.AddComponent<EnergySystem>();
                 EnergySystem.SetMaxEnergy(newsystem, MaxEnergy);
-                EnergySystem.SetRegen(newsystem,RegenEnergy);
-                EnergySystem.SetRegenTime(newsystem,RegenTime);
+                EnergySystem.SetRegen(newsystem, RegenEnergy);
+                EnergySystem.SetRegenTime(newsystem, RegenTime);
 
-                if(StartMax == true)
+                if (StartMax == true)
                 {
                     EnergySystem.SetEnergy(newsystem, MaxEnergy);
                 }
@@ -43,7 +39,7 @@ namespace ENSYS
                 {
                     EnergySystem.SetEnergy(newsystem, 0);
                 }
-                
+
                 OnEndAction?.Invoke(target.gameObject);
                 Debug.Log("Energy System inited");
                 return newsystem;
@@ -53,7 +49,6 @@ namespace ENSYS
                 return GetEnergySystem(target);
             }
         }
-
     }
 
     public class EnergySystem : MonoBehaviour
@@ -75,8 +70,6 @@ namespace ENSYS
         public UnityEvent OnEnableEvent;
 
         public bool isInitializated = false;
-
-        //private List<AbstractPower> _powersList = new List<AbstractPower>();
 
         private void OnEnable()
         {
@@ -104,14 +97,11 @@ namespace ENSYS
                 if (HumanPerson == null)
                     Destroy(this);
 
-                if(_cashedWait == null)
-                SetRegenTime(this,RegenTime);
+                if (_cashedWait == null)
+                    SetRegenTime(this, RegenTime);
 
                 if (ShouldRegen == true)
                     StartCoroutine(Regen());
-
-
-                
 
                 foreach (var item in HumanPerson.Limbs)
                 {
@@ -119,10 +109,9 @@ namespace ENSYS
                 }
 
                 if (EnergySystemCore.EnergySystemsUsers.ContainsKey(transform) == false)
-               EnergySystemCore.EnergySystemsUsers.Add(transform, this);
+                    EnergySystemCore.EnergySystemsUsers.Add(transform, this);
 
                 tagLib = this.gameObject.GetOrAddComponent<TagLib>();
-
 
                 OnAwakeEvent?.Invoke();
             }
@@ -134,7 +123,6 @@ namespace ENSYS
         }
 
         public UnityEvent<int> OnRemoveEnergyEvent;
-
 
         public static int GetEnergyAmount(Component sys)
         {
@@ -148,10 +136,23 @@ namespace ENSYS
             return ConvertedSys.MaxEnergy;
         }
 
-        public static void RemoveEnergy(Component sys,int amount)
+
+        public static bool GetTag(Component sys,string tag)
         {
             var ConvertedSys = sys as EnergySystem;
-             
+           return ConvertedSys.tagLib.ContainsTag(tag);
+        }
+
+        public static void AddTag(Component sys, string tag)
+        {
+            var ConvertedSys = sys as EnergySystem;
+            ConvertedSys.tagLib.AddTag(tag);
+        }
+
+
+        public static void RemoveEnergy(Component sys, int amount)
+        {
+            var ConvertedSys = sys as EnergySystem;
 
             if (ConvertedSys.Infinity == true) return;
 
@@ -161,27 +162,17 @@ namespace ENSYS
 
         public static UnityEvent<int> OnAddEnergyEvent;
 
-        public static void AddEnergy(Component sys,int amount)
+        public static void AddEnergy(Component sys, int amount)
         {
             var ConvertedSys = sys as EnergySystem;
             if (ConvertedSys.Infinity == true) return;
             ConvertedSys.Energy = Mathf.Clamp(ConvertedSys.Energy += amount, 0, ConvertedSys.MaxEnergy);
             OnAddEnergyEvent?.Invoke(amount);
         }
-       
-
-
-
-
 
         public UnityEvent<int> OnAddMaxEnergyEvent;
 
-
-
-
-
-
-        public static void AddMaxEnergy(Component sys,int amount)
+        public static void AddMaxEnergy(Component sys, int amount)
         {
             var ConvertedSys = sys as EnergySystem;
             if (ConvertedSys.Infinity == true) return;
@@ -192,7 +183,7 @@ namespace ENSYS
 
         public static UnityEvent<int> OnRemoveMaxEnergyEvent;
 
-        public static void RemoveMaxEnergy(Component sys,int amount)
+        public static void RemoveMaxEnergy(Component sys, int amount)
         {
             var ConvertedSys = sys as EnergySystem;
             if (ConvertedSys.Infinity == true) return;
@@ -203,7 +194,7 @@ namespace ENSYS
 
         public UnityEvent<int> OnSetRegenEvent;
 
-        public static void SetRegen(Component sys,int value)
+        public static void SetRegen(Component sys, int value)
         {
             var ConvertedSys = sys as EnergySystem;
             ConvertedSys.RegenEnergyAmount = value;
@@ -212,7 +203,7 @@ namespace ENSYS
 
         public UnityEvent<int> OnSetMaxEvent;
 
-        public static void SetMaxEnergy(Component sys,int value)
+        public static void SetMaxEnergy(Component sys, int value)
         {
             var ConvertedSys = sys as EnergySystem;
             ConvertedSys.MaxEnergy = value;
@@ -221,7 +212,7 @@ namespace ENSYS
 
         public UnityEvent<int> OnSetEnergyEvent;
 
-        public static void SetEnergy(Component sys,int value)
+        public static void SetEnergy(Component sys, int value)
         {
             var ConvertedSys = sys as EnergySystem;
             ConvertedSys.Energy = value;
@@ -240,7 +231,7 @@ namespace ENSYS
 
         public UnityEvent<float> OnSetTimeRegenEvent;
 
-        public static void SetRegenTime(Component sys,float amount)
+        public static void SetRegenTime(Component sys, float amount)
         {
             var ConvertedSys = sys as EnergySystem;
             ConvertedSys.RegenTime = amount;
@@ -300,52 +291,75 @@ namespace ENSYS
                 Id = id;
             }
 
-            // Override Equals and GetHashCode to compare Tags by ID
             public override bool Equals(object obj)
             {
                 if (obj is Tag otherTag)
                 {
-                    return Id == otherTag.Id;
+                    return Id.Equals(otherTag.Id, StringComparison.OrdinalIgnoreCase);
                 }
                 else if (obj is Enum otherEnumTag)
                 {
-                    return Id == otherEnumTag.ToString();
+                    return Id.Equals(otherEnumTag.ToString(), StringComparison.OrdinalIgnoreCase);
+                }
+                else if (obj is string otherStringTag)
+                {
+                    return Id.Equals(otherStringTag, StringComparison.OrdinalIgnoreCase);
                 }
                 return false;
             }
 
             public override int GetHashCode()
             {
-                return Id.GetHashCode();
+                return Id.ToLowerInvariant().GetHashCode();
             }
+
+            public static implicit operator Tag(string id) => new Tag(id);
+            public static implicit operator string(Tag tag) => tag.Id;
         }
+
+        public List<Tag> TagList = new List<Tag>();
 
         public Tag AddEnumToTag(Enum enumValue)
         {
             return new Tag(enumValue.ToString());
         }
 
-        public List<Tag> TagList = new List<Tag>();
-
         public bool ContainsTag(Tag tag)
         {
             return TagList.Contains(tag);
         }
 
+        public bool ContainsTag(string tagString)
+        {
+            return TagList.Contains(new Tag(tagString));
+        }
+
         public void RemoveTag(Tag tag)
         {
-            if (TagList.Contains(tag))
-            {
-                TagList.Remove(tag);
-            }
+            TagList.RemoveAll(t => t.Equals(tag));
+        }
+
+        public void RemoveTag(string tagString)
+        {
+            RemoveTag(new Tag(tagString));
         }
 
         public void AddTag(Tag tag)
         {
-            if (!TagList.Contains(tag))
+            if (!ContainsTag(tag))
             {
                 TagList.Add(tag);
             }
+        }
+
+        public void AddTag(string tagString)
+        {
+            AddTag(new Tag(tagString));
+        }
+
+        public Tag FindTag(string tagString)
+        {
+            return TagList.Find(t => t.Equals(tagString));
         }
     }
 }
