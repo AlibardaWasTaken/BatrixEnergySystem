@@ -44,7 +44,7 @@ namespace EnergySystemInitiator
             Debug.Log("EnCore Became Instance");
             // Get the directory of the current assembly
             var assemblyLocation = Assembly.GetAssembly(typeof(Map)).Location;
-            var directory = Path.GetDirectoryName(assemblyLocation);
+            var directory = Directory.GetParent(Path.GetDirectoryName(assemblyLocation)).FullName;
 
             // Search for the ENSYS DLL
             var existingDll = Directory.GetFiles(directory, "ENSYS_*.dll").FirstOrDefault();
@@ -79,14 +79,17 @@ namespace EnergySystemInitiator
                         int latestVersion;
                     int.TryParse(versionString, NumberStyles.Any, CultureInfo.InvariantCulture, out latestVersion);
 
-                        Debug.Log("got version from git" + latestVersion);
+                        Debug.Log("got version from git " + latestVersion);
 
                     if(latestVersion > existingVersion)
                     {
+                        Debug.Log("New version detected");
                         // Download the new DLL
                         var downloadUrl = "https://github.com/AlibardaWasTaken/BatrixEnergySystem/raw/main/ENSYS.dll";
                         var tempPath = Path.Combine(directory, "ENSYS.dll");
                         webClient.DownloadFile(downloadUrl, tempPath);
+                        Debug.Log("New version downloaded");
+
 
                         // Rename the downloaded DLL to include the version
                         var newDllName = $"ENSYS_{latestVersion}.dll";
@@ -95,11 +98,14 @@ namespace EnergySystemInitiator
                         // Delete the old DLL if it exists
                         if (existingDll != null)
                         {
+                            Debug.Log("Trying to delete old version");
                             File.Delete(existingDll);
+                            Debug.Log("Old version deleted");
                         }
 
                         // Rename the new DLL
                         File.Move(tempPath, newDllPath);
+                        Debug.Log("New version moved");
                         finalDllPath = newDllPath;
                    
                         downloadSuccess = true;
