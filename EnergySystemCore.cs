@@ -67,7 +67,7 @@ namespace ENSYS
 
         public PersonBehaviour HumanPerson;
 
-        public UnityEvent OnEnableEvent;
+        public UnityEvent OnEnableEvent = new UnityEvent();
 
         public bool isInitializated = false;
 
@@ -87,7 +87,7 @@ namespace ENSYS
             isInitializated = true;
         }
 
-        public UnityEvent OnAwakeEvent;
+        public UnityEvent OnAwakeEvent = new UnityEvent();
 
         public void Awake()
         {
@@ -122,7 +122,7 @@ namespace ENSYS
             }
         }
 
-        public UnityEvent<int> OnRemoveEnergyEvent;
+        public UnityEvent<int> OnRemoveEnergyEvent = new UnityEvent<int>();
 
         public static int GetEnergyAmount(Component sys)
         {
@@ -160,7 +160,7 @@ namespace ENSYS
             ConvertedSys.OnRemoveEnergyEvent?.Invoke(amount);
         }
 
-        public static UnityEvent<int> OnAddEnergyEvent;
+        public static UnityEvent<int> OnAddEnergyEvent = new UnityEvent<int>();
 
         public static void AddEnergy(Component sys, int amount)
         {
@@ -170,7 +170,7 @@ namespace ENSYS
             OnAddEnergyEvent?.Invoke(amount);
         }
 
-        public UnityEvent<int> OnAddMaxEnergyEvent;
+        public UnityEvent<int> OnAddMaxEnergyEvent = new UnityEvent<int>();
 
         public static void AddMaxEnergy(Component sys, int amount)
         {
@@ -181,7 +181,7 @@ namespace ENSYS
             ConvertedSys.OnAddMaxEnergyEvent?.Invoke(amount);
         }
 
-        public static UnityEvent<int> OnRemoveMaxEnergyEvent;
+        public static UnityEvent<int> OnRemoveMaxEnergyEvent = new UnityEvent<int>();
 
         public static void RemoveMaxEnergy(Component sys, int amount)
         {
@@ -192,7 +192,7 @@ namespace ENSYS
             OnRemoveMaxEnergyEvent?.Invoke(amount);
         }
 
-        public UnityEvent<int> OnSetRegenEvent;
+        public UnityEvent<int> OnSetRegenEvent = new UnityEvent<int>();
 
         public static void SetRegen(Component sys, int value)
         {
@@ -201,7 +201,7 @@ namespace ENSYS
             ConvertedSys.OnSetRegenEvent?.Invoke(value);
         }
 
-        public UnityEvent<int> OnSetMaxEvent;
+        public UnityEvent<int> OnSetMaxEvent = new UnityEvent<int>();
 
         public static void SetMaxEnergy(Component sys, int value)
         {
@@ -210,7 +210,7 @@ namespace ENSYS
             ConvertedSys.OnSetMaxEvent?.Invoke(value);
         }
 
-        public UnityEvent<int> OnSetEnergyEvent;
+        public UnityEvent<int> OnSetEnergyEvent = new UnityEvent<int>();
 
         public static void SetEnergy(Component sys, int value)
         {
@@ -219,7 +219,7 @@ namespace ENSYS
             ConvertedSys.OnSetEnergyEvent?.Invoke(value);
         }
 
-        public UnityEvent OnUpdateEvent;
+        public UnityEvent OnUpdateEvent = new UnityEvent();
 
         private void Update()
         {
@@ -229,7 +229,7 @@ namespace ENSYS
         public float RegenTime = 1f;
         private WaitForSeconds _cashedWait;
 
-        public UnityEvent<float> OnSetTimeRegenEvent;
+        public UnityEvent<float> OnSetTimeRegenEvent = new UnityEvent<float>();
 
         public static void SetRegenTime(Component sys, float amount)
         {
@@ -239,7 +239,7 @@ namespace ENSYS
             ConvertedSys.OnSetTimeRegenEvent?.Invoke(amount);
         }
 
-        public UnityEvent OnRegenEvent;
+        public UnityEvent OnRegenEvent = new UnityEvent();
 
         private IEnumerator Regen()
         {
@@ -264,15 +264,16 @@ namespace ENSYS
             return tagLib.GetType();
         }
 
-        public UnityEvent OnDestroyEvent;
+        public UnityEvent OnDestroyEvent = new UnityEvent();
 
         private void OnDestroy()
         {
+           
             OnDestroyEvent?.Invoke();
             EnergySystemCore.EnergySystemsUsers.Remove(this.transform);
         }
 
-        public UnityEvent OnDisableEvent;
+        public UnityEvent OnDisableEvent = new UnityEvent();
 
         private void OnDisable()
         {
