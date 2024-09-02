@@ -27,17 +27,17 @@ namespace ENSYS
             if (EnergySystemsUsers.ContainsKey(target.root) == false)
             {
                 var newsystem = target.root.gameObject.AddComponent<EnergySystem>();
-                EnergySystem.SetMaxEnergy(newsystem, MaxEnergy);
-                EnergySystem.SetRegen(newsystem, RegenEnergy);
-                EnergySystem.SetRegenTime(newsystem, RegenTime);
+                newsystem.SetMaxEnergy( MaxEnergy);
+                newsystem.SetRegen( RegenEnergy);
+                newsystem.SetRegenTime( RegenTime);
 
                 if (StartMax == true)
                 {
-                    EnergySystem.SetEnergy(newsystem, MaxEnergy);
+                    newsystem.SetEnergy(MaxEnergy);
                 }
                 else
                 {
-                    EnergySystem.SetEnergy(newsystem, 0);
+                    newsystem.SetEnergy( 0);
                 }
 
                 OnEndAction?.Invoke(target.gameObject);
@@ -98,7 +98,7 @@ namespace ENSYS
                     Destroy(this);
 
                 if (_cashedWait == null)
-                    SetRegenTime(this, RegenTime);
+                    SetRegenTime(RegenTime);
 
                 if (ShouldRegen == true)
                     StartCoroutine(Regen());
@@ -124,99 +124,123 @@ namespace ENSYS
 
         public UnityEvent<int> OnRemoveEnergyEvent = new UnityEvent<int>();
 
-        public static int GetEnergyAmount(Component sys)
+        public int GetEnergyAmount()
         {
-            var ConvertedSys = sys as EnergySystem;
-            return ConvertedSys.Energy;
+            return Energy;
         }
 
-        public static int GetMaxEnergyAmount(Component sys)
+        public bool IsInf()
         {
-            var ConvertedSys = sys as EnergySystem;
-            return ConvertedSys.MaxEnergy;
+            return Infinity;
         }
 
-
-        public static bool GetTag(Component sys,string tag)
+        public void SetInf(bool IsInf)
         {
-            var ConvertedSys = sys as EnergySystem;
-           return ConvertedSys.tagLib.ContainsTag(tag);
+            Infinity = IsInf;
         }
 
-        public static void AddTag(Component sys, string tag)
+        public int GetMaxEnergyAmount()
         {
-            var ConvertedSys = sys as EnergySystem;
-            ConvertedSys.tagLib.AddTag(tag);
+            return MaxEnergy;
         }
 
+        public Dictionary<string, object> ValuesHolder = new Dictionary<string, object>();
 
-        public static void RemoveEnergy(Component sys, int amount)
+        public object GetValueFromHolder(string key)
         {
-            var ConvertedSys = sys as EnergySystem;
-
-            if (ConvertedSys.Infinity == true) return;
-
-            ConvertedSys.Energy = Mathf.Clamp(ConvertedSys.Energy -= amount, 0, ConvertedSys.MaxEnergy);
-            ConvertedSys.OnRemoveEnergyEvent?.Invoke(amount);
+            if (ValuesHolder.ContainsKey(key))
+            {
+                return ValuesHolder[key];
+            }
+            return null;
         }
 
-        public static UnityEvent<int> OnAddEnergyEvent = new UnityEvent<int>();
-
-        public static void AddEnergy(Component sys, int amount)
+        public void AddValueToHolder(string key, object val)
         {
-            var ConvertedSys = sys as EnergySystem;
-            if (ConvertedSys.Infinity == true) return;
-            ConvertedSys.Energy = Mathf.Clamp(ConvertedSys.Energy += amount, 0, ConvertedSys.MaxEnergy);
+            if (ValuesHolder.ContainsKey(key) == false)
+            {
+                ValuesHolder.Add(key, val);
+            }
+            else
+            {
+                ValuesHolder[key] = val;
+            }
+        }
+
+        public bool GetTag(string tag)
+        {
+            return tagLib.ContainsTag(tag);
+        }
+
+        public void AddTag(string tag)
+        {
+            tagLib.AddTag(tag);
+        }
+
+        public void RemoveTag(string tag)
+        {
+            tagLib.RemoveTag(tag);
+        }
+
+        public void RemoveEnergy(int amount)
+        {
+            if (Infinity == true) return;
+
+            Energy = Mathf.Clamp(Energy -= amount, 0, MaxEnergy);
+            OnRemoveEnergyEvent?.Invoke(amount);
+        }
+
+        public UnityEvent<int> OnAddEnergyEvent = new UnityEvent<int>();
+
+        public void AddEnergy(int amount)
+        {
+            if (Infinity == true) return;
+            Energy = Mathf.Clamp(Energy += amount, 0, MaxEnergy);
             OnAddEnergyEvent?.Invoke(amount);
         }
 
         public UnityEvent<int> OnAddMaxEnergyEvent = new UnityEvent<int>();
 
-        public static void AddMaxEnergy(Component sys, int amount)
+        public void AddMaxEnergy(int amount)
         {
-            var ConvertedSys = sys as EnergySystem;
-            if (ConvertedSys.Infinity == true) return;
+            if (Infinity == true) return;
 
-            ConvertedSys.MaxEnergy = Mathf.Clamp(ConvertedSys.MaxEnergy += amount, 0, 999999);
-            ConvertedSys.OnAddMaxEnergyEvent?.Invoke(amount);
+            MaxEnergy = Mathf.Clamp(MaxEnergy += amount, 0, 999999);
+            OnAddMaxEnergyEvent?.Invoke(amount);
         }
 
-        public static UnityEvent<int> OnRemoveMaxEnergyEvent = new UnityEvent<int>();
+        public UnityEvent<int> OnRemoveMaxEnergyEvent = new UnityEvent<int>();
 
-        public static void RemoveMaxEnergy(Component sys, int amount)
+        public void RemoveMaxEnergy(int amount)
         {
-            var ConvertedSys = sys as EnergySystem;
-            if (ConvertedSys.Infinity == true) return;
+            if (Infinity == true) return;
 
-            ConvertedSys.MaxEnergy = Mathf.Clamp(ConvertedSys.MaxEnergy -= amount, 0, 999999);
+            MaxEnergy = Mathf.Clamp(MaxEnergy -= amount, 0, 999999);
             OnRemoveMaxEnergyEvent?.Invoke(amount);
         }
 
         public UnityEvent<int> OnSetRegenEvent = new UnityEvent<int>();
 
-        public static void SetRegen(Component sys, int value)
+        public void SetRegen(int value)
         {
-            var ConvertedSys = sys as EnergySystem;
-            ConvertedSys.RegenEnergyAmount = value;
-            ConvertedSys.OnSetRegenEvent?.Invoke(value);
+            RegenEnergyAmount = value;
+            OnSetRegenEvent?.Invoke(value);
         }
 
         public UnityEvent<int> OnSetMaxEvent = new UnityEvent<int>();
 
-        public static void SetMaxEnergy(Component sys, int value)
+        public void SetMaxEnergy(int value)
         {
-            var ConvertedSys = sys as EnergySystem;
-            ConvertedSys.MaxEnergy = value;
-            ConvertedSys.OnSetMaxEvent?.Invoke(value);
+            MaxEnergy = value;
+            OnSetMaxEvent?.Invoke(value);
         }
 
         public UnityEvent<int> OnSetEnergyEvent = new UnityEvent<int>();
 
-        public static void SetEnergy(Component sys, int value)
+        public void SetEnergy(int value)
         {
-            var ConvertedSys = sys as EnergySystem;
-            ConvertedSys.Energy = value;
-            ConvertedSys.OnSetEnergyEvent?.Invoke(value);
+            Energy = value;
+            OnSetEnergyEvent?.Invoke(value);
         }
 
         public UnityEvent OnUpdateEvent = new UnityEvent();
@@ -231,12 +255,11 @@ namespace ENSYS
 
         public UnityEvent<float> OnSetTimeRegenEvent = new UnityEvent<float>();
 
-        public static void SetRegenTime(Component sys, float amount)
+        public void SetRegenTime(float amount)
         {
-            var ConvertedSys = sys as EnergySystem;
-            ConvertedSys.RegenTime = amount;
-            ConvertedSys._cashedWait = new WaitForSeconds(ConvertedSys.RegenTime);
-            ConvertedSys.OnSetTimeRegenEvent?.Invoke(amount);
+            RegenTime = amount;
+            _cashedWait = new WaitForSeconds(RegenTime);
+            OnSetTimeRegenEvent?.Invoke(amount);
         }
 
         public UnityEvent OnRegenEvent = new UnityEvent();
@@ -259,16 +282,11 @@ namespace ENSYS
             }
         }
 
-        public Type GetTagLibType()
-        {
-            return tagLib.GetType();
-        }
 
         public UnityEvent OnDestroyEvent = new UnityEvent();
 
         private void OnDestroy()
         {
-           
             OnDestroyEvent?.Invoke();
             EnergySystemCore.EnergySystemsUsers.Remove(this.transform);
         }

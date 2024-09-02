@@ -13,7 +13,7 @@
   "Scripts": [
     "EntryDll.cs"
   ],
-  "Active": true,
+  "Active": false,
   "UGCIdentity": null,
   "CreatorUGCIdentity": "2308911224"
 }
