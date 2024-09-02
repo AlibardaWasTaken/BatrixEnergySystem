@@ -10,7 +10,7 @@ namespace ENSYS
     {
         public static Dictionary<Transform, EnergySystem> EnergySystemsUsers = new Dictionary<Transform, EnergySystem>();
 
-        public static Component GetEnergySystem(Transform target)
+        public static EnergySystem GetEnergySystem(Transform target)
         {
             if (EnergySystemsUsers.ContainsKey(target.root) == true)
             {
@@ -22,7 +22,7 @@ namespace ENSYS
             }
         }
 
-        public static Component SetUpEnergySystem(Transform target, int MaxEnergy, int RegenEnergy, float RegenTime, bool StartMax, System.Action<GameObject> OnEndAction)
+        public static EnergySystem SetUpEnergySystem(Transform target, int MaxEnergy, int RegenEnergy, float RegenTime, bool StartMax, System.Action<GameObject> OnEndAction)
         {
             if (EnergySystemsUsers.ContainsKey(target.root) == false)
             {
