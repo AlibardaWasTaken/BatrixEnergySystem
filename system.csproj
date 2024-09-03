@@ -132,7 +132,7 @@
     <None Include="mod.json" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="EnergySystemCore.cs" />
+    <Compile Include="ENSYSCore.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSHARP.Targets" />
   <ProjectExtensions>
