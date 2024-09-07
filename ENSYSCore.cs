@@ -23,19 +23,20 @@ namespace ENSYS
 
             Initiated = true;
             Debug.Log("EnCoreSYS ALIVE");
-           // using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("ENSYS.Resources.HarmonyFixer.dll"))
-           // {
-           //     byte[] assemblyData;
-           //     using (MemoryStream ms = new MemoryStream())
-           //     {
-           //         stream.CopyTo(ms);
-            //        assemblyData = ms.ToArray();
-            //    }
-             //   Assembly loadedAssembly = Assembly.Load(assemblyData);
-            //    Type harmonyFixerType = loadedAssembly.GetType("PP.HarmonyFixer");
-             //   MethodInfo loadMethod = harmonyFixerType.GetMethod("Load", BindingFlags.Public | BindingFlags.Static);
-             //   loadMethod.Invoke(null, null); 
-           // }
+
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("ENSYS.Resources.HarmonyFixer.dll"))
+            {
+                byte[] assemblyData;
+                using (MemoryStream ms = new MemoryStream())
+               {
+                    stream.CopyTo(ms);
+                    assemblyData = ms.ToArray();
+                }
+                Assembly loadedAssembly = Assembly.Load(assemblyData);
+               Type harmonyFixerType = loadedAssembly.GetType("PP.HarmonyFixer");
+                MethodInfo loadMethod = harmonyFixerType.GetMethod("Load", BindingFlags.Public | BindingFlags.Static);
+                loadMethod.Invoke(null, null); 
+            }
         
 
         new Harmony("Com.Batrix.HTR").PatchAll();
