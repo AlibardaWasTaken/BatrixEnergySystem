@@ -132,12 +132,18 @@
     <None Include="mod.json" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AbstractEnergySystem.cs" />
+    <Compile Include="AbilityBase.cs" />
+    <Compile Include="AbstractLevelSystem.cs" />
+    <Compile Include="DurabilityBaseLimb.cs" />
     <Compile Include="ENSYSCore.cs" />
+    <Compile Include="Interfaces.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="RegrowthModule.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">
