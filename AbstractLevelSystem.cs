@@ -7,6 +7,7 @@ namespace ENSYS
     public abstract class AbstractLevelSystem : MonoBehaviour
     {
         protected int level = 1;
+        public int maxlevel = 10;
         public virtual int Level
         {
             get => level;
@@ -59,6 +60,9 @@ namespace ENSYS
 
         protected virtual void CheckLevelUp()
         {
+            if (level >= maxlevel)
+                return;
+
             while (Experience >= ExperienceToNextLevel)
             {
                 Experience -= ExperienceToNextLevel;
@@ -106,7 +110,7 @@ namespace ENSYS
             }
             else
             {
-                Debug.LogError("No IExperienceGainer implementation found on this character.");
+                Debug.Log("No IExperienceGainer implementation found on this character.");
             }
         }
 

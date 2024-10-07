@@ -96,6 +96,20 @@ namespace ENSYS
             CirculationBehaviour = limb.CirculationBehaviour;
             AfterStart();
         }
+
+        public virtual void Patch_Damage(float damage)
+        {
+            if (UserPreferenceManager.Current.StopAnimationOnDamage && !this.limb.IsZombie && damage > 15.5f && this.limb.NodeBehaviour.IsConnectedToRoot)
+            {
+                this.Person.OverridePoseIndex = -1;
+            }
+            this.limb.Health -= damage;
+            if (this.limb.Health <= 0f)
+            {
+                this.CirculationBehaviour.IsPump = false;
+            }
+        }
+
         public virtual void AfterStart()
         { }
 

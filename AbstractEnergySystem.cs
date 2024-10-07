@@ -308,4 +308,9 @@ namespace ENSYS
         }
     }
 
+
+    public class UiInitilizedTagged : MonoBehaviour
+    {
+
+    }
 }

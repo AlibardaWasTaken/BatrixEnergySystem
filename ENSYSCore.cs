@@ -12,6 +12,7 @@ namespace ENSYS
     public static class ENSYSCore
     {
         public static Dictionary<Transform, EnergySystem> EnergySystemsUsers = new Dictionary<Transform, EnergySystem>();
+        public static Dictionary<Transform, AbstractLevelSystem> LevelSystemsUsers = new Dictionary<Transform, AbstractLevelSystem>();
         public static Dictionary<Transform, DurabilityTagged> DurabilitySystemsUsers = new Dictionary<Transform, DurabilityTagged>();
 
         public static bool Initiated = false;
@@ -53,6 +54,9 @@ namespace ENSYS
             }
         }
 
+
+
+
         [HarmonyPatch]
         public class SlashPatcher
         {
@@ -72,6 +76,33 @@ namespace ENSYS
 
 
         }
+
+        [HarmonyPatch]
+        public class DamagePatcher
+        {
+
+            [HarmonyPatch(typeof(LimbBehaviour), "Damage")]
+            [HarmonyPrefix]
+            public static bool Prefix(LimbBehaviour __instance, float damage)
+            {
+                if (DurabilitySystemsUsers.ContainsKey(__instance.transform.root))
+                {
+                    DurabilitySystemsUsers[__instance.transform.root].appliedDurLmb[__instance].Patch_Damage(damage);
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+
+                
+            }
+
+
+
+        }
+
+
 
         [HarmonyPatch]
         public class BloodFootPatcher
