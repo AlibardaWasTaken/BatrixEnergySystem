@@ -34,7 +34,7 @@ namespace ENSYS
         public virtual int ExperienceToNextLevel
         {
             get => experienceToNextLevel;
-            protected set
+            set
             {
                 experienceToNextLevel = value;
                 OnExperienceToNextLevelChangedEvent?.Invoke(experienceToNextLevel);
@@ -44,8 +44,9 @@ namespace ENSYS
 
         protected virtual void Awake()
         {
-
+  
         }
+
 
         public UnityEvent<int> OnLevelUpEvent { get; } = new UnityEvent<int>();
         public UnityEvent<int> OnExperienceChangedEvent { get; } = new UnityEvent<int>();
@@ -95,6 +96,9 @@ namespace ENSYS
         {
             base.Awake();
 
+            if (ENSYSCore.LevelSystemsUsers.ContainsKey(transform) == false)
+                ENSYSCore.LevelSystemsUsers.Add(transform, this);
+
             // Assign default leveling strategy if none is set
             if (LevelingStrategy == null)
             {
@@ -112,6 +116,12 @@ namespace ENSYS
             {
                 Debug.Log("No IExperienceGainer implementation found on this character.");
             }
+        }
+
+        public void OnDestroy()
+        {
+            if (ENSYSCore.LevelSystemsUsers.ContainsKey(this.transform.root) == true)
+                ENSYSCore.LevelSystemsUsers.Remove(this.transform.root);
         }
 
         private void Update()

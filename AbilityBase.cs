@@ -2,6 +2,7 @@
 using System;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using Utility;
 
 namespace ENSYS
 {
@@ -84,7 +85,31 @@ namespace ENSYS
         public ENSYS.EnergySystem EnergySys { get => _energySys; protected set => _energySys = value; }
     }
 
+    public abstract class AbstractDebuff : MonoBehaviour
+    {
+        public bool DeletesOnEnd = true;
+        public bool CanBePurged = true;
+        public bool ShouldExpire = true;
 
+        public float timer = 0f;
+        public float timeForExpire = 5f;
+
+        public void OnEnable()
+        {
+             if (this.gameObject.HaveTag("DebuffImmune"))
+             {
+                 Expire();
+            }
+        }
+
+        public virtual void Expire()
+        {
+            if (DeletesOnEnd == true)
+            {
+                Destroy(this);
+            }
+        }
+    }
     public class VirtualEnergyShield : AbstractPassiveEnergy
     {
         protected LimbBehaviour[] _limbs;

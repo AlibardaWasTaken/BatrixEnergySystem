@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ENSYS;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -138,6 +139,15 @@ namespace Utility
 
 
             }
+        }
+
+        public static bool HaveTag(this GameObject PB, string tag)
+        {
+            var sys = ENSYSCore.GetEnergySystem(PB.transform.root);
+            if (sys == null)
+                return false;
+
+            return sys.tagLib.ContainsTag(tag.ToString());
         }
 
         public static RopeDecorManager SetUpRopeDecor(this GameObject objForAttach, Vector2 connectedAnchor, string layerName, int order, List<Sprite> sprites, float minAngleFP, float maxAngleFP, float minAngle, float maxAngle, float pieceMass = 0.0018f, float distmult = 2.9f)
@@ -812,6 +822,7 @@ namespace Utility
 
     public abstract class AbstractDecor : MonoBehaviour
     {
+
     }
 
 

@@ -12,7 +12,7 @@ namespace ENSYS
     public static class ENSYSCore
     {
         public static Dictionary<Transform, EnergySystem> EnergySystemsUsers = new Dictionary<Transform, EnergySystem>();
-        public static Dictionary<Transform, AbstractLevelSystem> LevelSystemsUsers = new Dictionary<Transform, AbstractLevelSystem>();
+        public static Dictionary<Transform, LevelSystem> LevelSystemsUsers = new Dictionary<Transform, LevelSystem>();
         public static Dictionary<Transform, DurabilityTagged> DurabilitySystemsUsers = new Dictionary<Transform, DurabilityTagged>();
 
         public static bool Initiated = false;
@@ -54,7 +54,17 @@ namespace ENSYS
             }
         }
 
-
+        public static LevelSystem GetLevelSystem(Transform target)
+        {
+            if (LevelSystemsUsers.ContainsKey(target.root) == true)
+            {
+                return LevelSystemsUsers[target.root];
+            }
+            else
+            {
+                return null;
+            }
+        }
 
 
         [HarmonyPatch]
