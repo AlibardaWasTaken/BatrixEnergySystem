@@ -44,7 +44,7 @@ namespace ENSYS
 
         protected virtual void Awake()
         {
-  
+
         }
 
 
@@ -59,7 +59,7 @@ namespace ENSYS
             Experience += amount;
         }
 
-        protected virtual void CheckLevelUp()
+        public virtual void CheckLevelUp()
         {
             if (level >= maxlevel)
                 return;
@@ -71,14 +71,14 @@ namespace ENSYS
             }
         }
 
-        protected virtual void LevelUp()
+        public virtual void LevelUp()
         {
             Level++;
             OnLevelUpEvent?.Invoke(Level);
             ExperienceToNextLevel = CalculateExperienceToNextLevel();
         }
 
-        protected abstract int CalculateExperienceToNextLevel();
+        public abstract int CalculateExperienceToNextLevel();
 
 
     }
@@ -129,7 +129,7 @@ namespace ENSYS
             experienceGainer?.OnUpdate();
         }
 
-        protected override int CalculateExperienceToNextLevel()
+        public override int CalculateExperienceToNextLevel()
         {
             return LevelingStrategy.GetExperienceToNextLevel(Level);
         }
@@ -219,7 +219,7 @@ namespace ENSYS
 
         public void OnUpdate()
         {
-            
+
         }
     }
 

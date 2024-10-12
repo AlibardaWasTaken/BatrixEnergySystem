@@ -155,6 +155,7 @@
     <Compile Include="AbstractEnergySystem.cs" />
     <Compile Include="AbilityBase.cs" />
     <Compile Include="AbstractLevelSystem.cs" />
+    <Compile Include="CommonPassives.cs" />
     <Compile Include="DurabilityBaseLimb.cs" />
     <Compile Include="ENSYSCore.cs" />
     <Compile Include="Interfaces.cs" />

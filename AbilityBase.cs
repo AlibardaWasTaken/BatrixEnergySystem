@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
-using System;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
-using Random = UnityEngine.Random;
 using Utility;
+using Random = UnityEngine.Random;
 
 namespace ENSYS
 {
@@ -48,7 +48,7 @@ namespace ENSYS
         private bool _isLocked = false;
         public bool IsInited;
         public bool BypassDefence = false;
-
+        public bool IsPowerActivated = true;
         public bool IsLocked { get => _isLocked; }
 
         public virtual void SetLocked(bool state)
@@ -57,6 +57,23 @@ namespace ENSYS
                 return;
 
             _isLocked = state;
+        }
+
+        /// <summary>
+        /// Turn on/off power
+        /// </summary>
+        public virtual void Switch()
+        {
+            if (IsLocked == true)
+                return;
+
+            IsPowerActivated = !IsPowerActivated;
+
+            OnSwitch();
+        }
+
+        protected virtual void OnSwitch()
+        {
         }
 
         public abstract Sprite DescImage();
@@ -96,9 +113,9 @@ namespace ENSYS
 
         public void OnEnable()
         {
-             if (this.gameObject.HaveTag("DebuffImmune"))
-             {
-                 Expire();
+            if (this.gameObject.HaveTag("DebuffImmune"))
+            {
+                Expire();
             }
         }
 
@@ -110,116 +127,6 @@ namespace ENSYS
             }
         }
     }
-    public class VirtualEnergyShield : AbstractPassiveEnergy
-    {
-        protected LimbBehaviour[] _limbs;
-        protected List<EnergyLimb> _enerLimb = new List<EnergyLimb>();
-        protected float _absorbMult = 1.01f;
-        protected Color _absorbColor;
-        protected bool _isSetedUp;
-        protected ENSYS.EnergySystem sys;
 
-        public override string DescTitle()
-        {
-            return "Energy Shield";
-        }
-
-        public override Sprite DescImage()
-        {
-            return null;
-        }
-
-        public override string Description()
-        {
-            return "This creature has an energy shield ability that allows it to block some of incoming Powers effects at the cost of Energy equal to the Energy used for that attack \nChance depends on Energy Ratio. Current chance : " + (sys.Energy  / sys.MaxEnergy) + "%";
-        }
-
-        // public bool IsSetedUp { get => IsSetedUp; protected set => IsSetedUp = value; }
-
-        public Color AbsorbColor { get => _absorbColor; set => _absorbColor = value; }
-
-        public bool IsSetedUp { get => _isSetedUp; protected set => _isSetedUp = value; }
-        public virtual float AbsorbMult { get => Convert.ToInt32(_absorbMult); set => _absorbMult = value; }
-
-        private void Start()
-        {
-            // this.GetComponent<PhysicalBehaviour>().ContextMenuOptions.Buttons.Add(new ContextMenuButton("Toggle_Shield", "Toggle Energy Shield", "Toggle Energy Shield", () => { IsEnable = !IsEnable; }));
-            sys = this.transform.root.gameObject.GetComponent<ENSYS.EnergySystem>();
-
-            if (IsSetedUp == true)
-                SetSystem(sys, _absorbColor, AbsorbMult);
-        }
-
-        public void SetSystem(ENSYS.EnergySystem system, Color absorbColor, float absorbMult = 1f)
-        {
-            EnergySys = system;
-            AbsorbColor = absorbColor;
-            AbsorbMult = absorbMult;
-
-            _limbs = EnergySys.personBehaviour.Limbs;
-            foreach (var limb in _limbs)
-            {
-                var energyProtected = limb.gameObject.GetOrAddComponent<EnergyLimb>();
-                energyProtected.SetEnergyShield(this);
-                _enerLimb.Add(energyProtected);
-            }
-            IsSetedUp = true;
-        }
-
-        public virtual bool TryApplyEffect(int cost, GameObject Obj, float Mult = 1f)
-        {
-            if (IsEnabled == false || _limbs[0].Person.IsAlive() == false) return true;
-
-            if (CheckApply(cost, Mult) == false)
-            {
-                EnergySys.RemoveEnergy((int)(cost * (AbsorbMult * Mult)));
-
-                 var effect = ModAPI.CreateParticleEffect("Vapor", Obj.transform.position);
-                 effect.gameObject.GetComponent<ParticleSystem>().startColor = _absorbColor;
-                return false;
-            }
-            return true;
-        }
-
-        public bool CheckApply(int cost, float Mult = 1f)
-        {
-            if (IsEnabled == false || _limbs[0].Person.IsAlive() == false) return true;
-
-            if (EnergySys.Energy >= (int)(cost * (AbsorbMult * Mult)) && IsRandBlocked() == true)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        protected virtual bool IsRandBlocked()
-        {
-            if (sys.MaxEnergy == 0)
-                return false;
-
-            return (Random.value < (sys.Energy / sys.MaxEnergy));
-        }
-
-        private void OnDestroy()
-        {
-            foreach (var ener in _enerLimb)
-            {
-                Destroy(ener);
-            }
-        }
-    }
-
-    public class EnergyLimb : MonoBehaviour
-    {
-        private VirtualEnergyShield _shield;
-
-        public VirtualEnergyShield Shield { get => _shield; private set => _shield = value; }
-
-        public void SetEnergyShield(VirtualEnergyShield shield)
-        {
-            _shield = shield;
-        }
-    }
 
 }

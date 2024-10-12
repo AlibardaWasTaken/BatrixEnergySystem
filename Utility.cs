@@ -501,7 +501,7 @@ namespace Utility
 
                 yield return new WaitForSeconds(3);
 
-                if(Global.main.Paused == false && Time.timeScale > 0.8)
+                if (Global.main.Paused == false && Time.timeScale > 0.8)
                 {
                     hingeJoint.autoConfigureConnectedAnchor = true;
                 }
@@ -1111,8 +1111,8 @@ namespace Utility
             {
                 ModAPI.Notify(line);
                 physicalBehaviour.MainAudioSource.enabled = true;
-                if(lineclip!= null)
-                physicalBehaviour.MainAudioSource.PlayOneShot(lineclip, 2.5f);
+                if (lineclip != null)
+                    physicalBehaviour.MainAudioSource.PlayOneShot(lineclip, 2.5f);
                 yield return new WaitForSeconds(reactionData.delay);
             }
 

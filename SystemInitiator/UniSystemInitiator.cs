@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
-using System.Net;
-using System.Globalization;
 using UnityEngine.Events;
 
 namespace EnergySystemInitiator
@@ -16,9 +16,9 @@ namespace EnergySystemInitiator
     {
         public static void Initiate()
         {
-            if(GameObject.Find("BATRIX_ENERGY_SYS_INIT") == null)
+            if (GameObject.Find("BATRIX_ENERGY_SYS_INIT") == null)
             {
-               var gm = new GameObject("BATRIX_ENERGY_SYS_INIT");
+                var gm = new GameObject("BATRIX_ENERGY_SYS_INIT");
                 gm.AddComponent<InitiatorCore>();
                 Debug.Log("Created EnCore");
             }
@@ -28,7 +28,7 @@ namespace EnergySystemInitiator
 
 
 
-public class InitiatorCore : MonoBehaviour
+    public class InitiatorCore : MonoBehaviour
     {
         public static InitiatorCore instance;
 
@@ -150,8 +150,8 @@ public class InitiatorCore : MonoBehaviour
             }
 
 
-           
-            
+
+
 
         }
 

@@ -30,7 +30,7 @@ namespace ENSYS
             }
         }
 
-        
+
 
         public int RegenEnergyAmount { get; protected set; }
         public float RegenTime { get; protected set; } = 1f;
@@ -138,8 +138,8 @@ namespace ENSYS
         protected virtual void OnDestroy()
         {
             if (ENSYSCore.EnergySystemsUsers.ContainsKey(this.transform.root) == true)
-               ENSYSCore.EnergySystemsUsers.Remove(this.transform.root);
-            
+                ENSYSCore.EnergySystemsUsers.Remove(this.transform.root);
+
             OnDestroyEvent?.Invoke();
         }
 
@@ -211,12 +211,12 @@ namespace ENSYS
                 }
                 else
                 {
-                    if(DeathLoss == true)
+                    if (DeathLoss == true)
                     {
                         Energy -= (int)(RegenEnergyAmount * 0.5);
                     }
                 }
-                    
+
 
                 OnRegenEvent?.Invoke();
 
