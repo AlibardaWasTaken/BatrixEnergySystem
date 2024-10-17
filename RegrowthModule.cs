@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using static Utility.UtilityMethods;
 
 namespace ENSYS
 {
@@ -39,8 +40,22 @@ namespace ENSYS
             if (IsCached(personBehaviour))
                 return;
 
+            if(personBehaviour.TryGetComponent<BeingSliced>(out var sl))
+            {
+                personBehaviour.StartCoroutine(CollectWithDelay(personBehaviour));
+                return;
+            }
+
             var limbInformations = personBehaviour.Limbs.Select(l => new LimbInformation(l)).ToArray();
             m_cached.Add((personBehaviour, limbInformations));
+        }
+
+        private static IEnumerator CollectWithDelay(PersonBehaviour person)
+        {
+            yield return new WaitForSeconds(0.15f);
+
+            var limbInformations = person.Limbs.Select(l => new LimbInformation(l)).ToArray();
+            m_cached.Add((person, limbInformations));
         }
 
         // Check if the person is already cached

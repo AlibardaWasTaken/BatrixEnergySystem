@@ -285,6 +285,7 @@ namespace Utility
 
         public static void ChangeSkinSliced(this PersonBehaviour person, SkinDataSet skinData, SkinDataSet FlData = null, SkinDataSet SkData = null, Texture2D damage = null, bool fixcol = true)
         {
+            person.gameObject.GetOrAddComponent<BeingSliced>();
             person.Limbs[0].SetSlicedSkinForLimb(skinData.HeadSpr, FlData?.HeadSpr, SkData?.HeadSpr, damage);
 
             person.Limbs[1].SetSlicedSkinForLimb(skinData.UpTorsoSpr, FlData?.UpTorsoSpr, SkData?.UpTorsoSpr, damage);
@@ -500,6 +501,11 @@ namespace Utility
                 limb.PhysicalBehaviour.RefreshOutline();
 
                 yield return new WaitForSeconds(3);
+
+                if(limb.Person.TryGetComponent<BeingSliced>(out var sl))
+                {
+                    GameObject.Destroy(sl);
+                }
 
                 if (Global.main.Paused == false && Time.timeScale > 0.8)
                 {
@@ -768,6 +774,7 @@ namespace Utility
             DecorationObj.transform.parent = Object.transform;
             DecorationObj.transform.localPosition = pos;
             DecorationObj.transform.localScale = scale;
+            DecorationObj.transform.localRotation = Quaternion.Euler(Vector3.zero);
             DecorationObj.AddComponent<Optout>();
 
             var DecorSprite = DecorationObj.AddComponent<SpriteRenderer>();
@@ -817,6 +824,10 @@ namespace Utility
                     break;
                 yield return null;
             }
+        }
+
+        public class BeingSliced : MonoBehaviour
+        {
         }
     }
 
