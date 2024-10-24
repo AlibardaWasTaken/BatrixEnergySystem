@@ -6,12 +6,14 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using Utility;
 
 namespace ENSYS
 {
     public static class ENSYSCore
     {
         public static Dictionary<Transform, EnergySystem> EnergySystemsUsers = new Dictionary<Transform, EnergySystem>();
+        public static Dictionary<Transform, LevelSystem> LevelSystemsUsers = new Dictionary<Transform, LevelSystem>();
         public static Dictionary<Transform, DurabilityTagged> DurabilitySystemsUsers = new Dictionary<Transform, DurabilityTagged>();
 
         public static bool Initiated = false;
@@ -27,18 +29,30 @@ namespace ENSYS
             {
                 byte[] assemblyData;
                 using (MemoryStream ms = new MemoryStream())
-               {
+                {
                     stream.CopyTo(ms);
                     assemblyData = ms.ToArray();
                 }
                 Assembly loadedAssembly = Assembly.Load(assemblyData);
-               Type harmonyFixerType = loadedAssembly.GetType("PP.HarmonyFixer");
+                Type harmonyFixerType = loadedAssembly.GetType("PP.HarmonyFixer");
                 MethodInfo loadMethod = harmonyFixerType.GetMethod("Load", BindingFlags.Public | BindingFlags.Static);
-                loadMethod.Invoke(null, null); 
+                loadMethod.Invoke(null, null);
             }
-        
 
-        new Harmony("Com.Batrix.HTR").PatchAll();
+
+            new Harmony("Com.Batrix.HTR").PatchAll();
+        }
+
+        private static bool IsInited = false;
+
+
+        public static void InitMain()
+        {
+            if(IsInited == true) return;
+
+            IsInited = true;
+            UtilityMethods.FindCanvas();
+            RegrowthModuleCache.Cache();
         }
 
         public static EnergySystem GetEnergySystem(Transform target)
@@ -52,6 +66,19 @@ namespace ENSYS
                 return null;
             }
         }
+
+        public static LevelSystem GetLevelSystem(Transform target)
+        {
+            if (LevelSystemsUsers.ContainsKey(target.root) == true)
+            {
+                return LevelSystemsUsers[target.root];
+            }
+            else
+            {
+                return null;
+            }
+        }
+
 
         [HarmonyPatch]
         public class SlashPatcher
@@ -74,6 +101,33 @@ namespace ENSYS
         }
 
         [HarmonyPatch]
+        public class DamagePatcher
+        {
+
+            [HarmonyPatch(typeof(LimbBehaviour), "Damage")]
+            [HarmonyPrefix]
+            public static bool Prefix(LimbBehaviour __instance, float damage)
+            {
+                if (DurabilitySystemsUsers.ContainsKey(__instance.transform.root))
+                {
+                    DurabilitySystemsUsers[__instance.transform.root].appliedDurLmb[__instance].Patch_Damage(damage);
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+
+
+            }
+
+
+
+        }
+
+
+
+        [HarmonyPatch]
         public class BloodFootPatcher
         {
             private static readonly ContactPoint2D[] contactBuffer = new ContactPoint2D[8];
@@ -91,7 +145,7 @@ namespace ENSYS
                         Vector2 normal = contactBuffer[0].normal;
                         Vector2 point = contactBuffer[0].point;
                         PhysicalBehaviour physicalBehaviour;
-        
+
                         if (Global.main.PhysicalObjectsInWorldByTransform.TryGetValue(collision.transform, out physicalBehaviour) && physicalBehaviour.SimulateTemperature && physicalBehaviour.Temperature >= 70f)
                         {
                             __instance.Damage(physicalBehaviour.Temperature / 140f);
@@ -132,7 +186,7 @@ namespace ENSYS
                         collision.gameObject.SendMessage("Decal", new DecalInstruction(__instance.BloodDecal, point, __instance.CirculationBehaviour.GetComputedColor(__instance.GetOriginalBloodType().Color), 1f), SendMessageOptions.DontRequireReceiver);
                         return false;
                     }
- 
+
                 }
                 return true;
             }
@@ -188,9 +242,9 @@ namespace ENSYS
             if (EnergySystemsUsers.ContainsKey(target.root) == false)
             {
                 var newsystem = target.root.gameObject.AddComponent<EnergySystem>();
-                newsystem.SetMaxEnergy( MaxEnergy);
-                newsystem.SetRegen( RegenEnergy);
-                newsystem.SetRegenTime( RegenTime);
+                newsystem.SetMaxEnergy(MaxEnergy);
+                newsystem.SetRegen(RegenEnergy);
+                newsystem.SetRegenTime(RegenTime);
 
                 if (StartMax == true)
                 {
@@ -198,7 +252,7 @@ namespace ENSYS
                 }
                 else
                 {
-                    newsystem.SetEnergy( 0);
+                    newsystem.SetEnergy(0);
                 }
 
                 OnEndAction?.Invoke(target.gameObject);

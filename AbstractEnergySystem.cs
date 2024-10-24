@@ -30,6 +30,8 @@ namespace ENSYS
             }
         }
 
+
+
         public int RegenEnergyAmount { get; protected set; }
         public float RegenTime { get; protected set; } = 1f;
 
@@ -135,6 +137,9 @@ namespace ENSYS
 
         protected virtual void OnDestroy()
         {
+            if (ENSYSCore.EnergySystemsUsers.ContainsKey(this.transform.root) == true)
+                ENSYSCore.EnergySystemsUsers.Remove(this.transform.root);
+
             OnDestroyEvent?.Invoke();
         }
 
@@ -155,7 +160,7 @@ namespace ENSYS
         public bool isInitialized = false;
 
         private WaitForSeconds _cashedWait;
-
+        public bool DeathLoss = true;
         protected override void Awake()
         {
             base.Awake();
@@ -201,7 +206,17 @@ namespace ENSYS
                 if (Infinity) { yield return _cashedWait; continue; }
 
                 if (personBehaviour.IsAlive())
+                {
                     Energy += RegenEnergyAmount;
+                }
+                else
+                {
+                    if (DeathLoss == true)
+                    {
+                        Energy -= (int)(RegenEnergyAmount * 0.5);
+                    }
+                }
+
 
                 OnRegenEvent?.Invoke();
 
@@ -308,4 +323,9 @@ namespace ENSYS
         }
     }
 
+
+    public class UiInitilizedTagged : MonoBehaviour
+    {
+
+    }
 }

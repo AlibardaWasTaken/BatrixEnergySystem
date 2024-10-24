@@ -7,6 +7,7 @@ namespace ENSYS
     public abstract class AbstractLevelSystem : MonoBehaviour
     {
         protected int level = 1;
+        public int maxlevel = 10;
         public virtual int Level
         {
             get => level;
@@ -33,7 +34,7 @@ namespace ENSYS
         public virtual int ExperienceToNextLevel
         {
             get => experienceToNextLevel;
-            protected set
+            set
             {
                 experienceToNextLevel = value;
                 OnExperienceToNextLevelChangedEvent?.Invoke(experienceToNextLevel);
@@ -46,6 +47,7 @@ namespace ENSYS
 
         }
 
+
         public UnityEvent<int> OnLevelUpEvent { get; } = new UnityEvent<int>();
         public UnityEvent<int> OnExperienceChangedEvent { get; } = new UnityEvent<int>();
 
@@ -57,8 +59,11 @@ namespace ENSYS
             Experience += amount;
         }
 
-        protected virtual void CheckLevelUp()
+        public virtual void CheckLevelUp()
         {
+            if (level >= maxlevel)
+                return;
+
             while (Experience >= ExperienceToNextLevel)
             {
                 Experience -= ExperienceToNextLevel;
@@ -66,14 +71,14 @@ namespace ENSYS
             }
         }
 
-        protected virtual void LevelUp()
+        public virtual void LevelUp()
         {
             Level++;
             OnLevelUpEvent?.Invoke(Level);
             ExperienceToNextLevel = CalculateExperienceToNextLevel();
         }
 
-        protected abstract int CalculateExperienceToNextLevel();
+        public abstract int CalculateExperienceToNextLevel();
 
 
     }
@@ -91,6 +96,9 @@ namespace ENSYS
         {
             base.Awake();
 
+            if (ENSYSCore.LevelSystemsUsers.ContainsKey(transform) == false)
+                ENSYSCore.LevelSystemsUsers.Add(transform, this);
+
             // Assign default leveling strategy if none is set
             if (LevelingStrategy == null)
             {
@@ -106,8 +114,14 @@ namespace ENSYS
             }
             else
             {
-                Debug.LogError("No IExperienceGainer implementation found on this character.");
+                Debug.Log("No IExperienceGainer implementation found on this character.");
             }
+        }
+
+        public void OnDestroy()
+        {
+            if (ENSYSCore.LevelSystemsUsers.ContainsKey(this.transform.root) == true)
+                ENSYSCore.LevelSystemsUsers.Remove(this.transform.root);
         }
 
         private void Update()
@@ -115,7 +129,7 @@ namespace ENSYS
             experienceGainer?.OnUpdate();
         }
 
-        protected override int CalculateExperienceToNextLevel()
+        public override int CalculateExperienceToNextLevel()
         {
             return LevelingStrategy.GetExperienceToNextLevel(Level);
         }
@@ -205,7 +219,7 @@ namespace ENSYS
 
         public void OnUpdate()
         {
-            
+
         }
     }
 
