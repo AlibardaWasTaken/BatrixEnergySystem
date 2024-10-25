@@ -48,10 +48,13 @@ namespace ENSYS
 
         public static void InitMain()
         {
-            if(IsInited == true) return;
+            
 
-            IsInited = true;
+            
             UtilityMethods.FindCanvas();
+
+            //if (IsInited == true) return;
+           // IsInited = true;
             RegrowthModuleCache.Cache();
         }
 
