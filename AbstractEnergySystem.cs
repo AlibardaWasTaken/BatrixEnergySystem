@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Linefy.Internal;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -100,13 +101,13 @@ namespace ENSYS
         public virtual void AddMaxEnergy(int amount)
         {
             if (Infinity) return;
-            maxEnergy += amount;
+            maxEnergy = Mathf.Clamp(maxEnergy + amount, 0, int.MaxValue);
         }
 
         public virtual void RemoveMaxEnergy(int amount)
         {
             if (Infinity) return;
-            maxEnergy -= amount;
+            maxEnergy = Mathf.Clamp(maxEnergy - amount, 0, int.MaxValue);
         }
 
 

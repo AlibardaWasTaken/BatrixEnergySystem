@@ -289,6 +289,11 @@ namespace Utility
 
         public static void ChangeSkinSliced(this PersonBehaviour person, SkinDataSet skinData, SkinDataSet FlData = null, SkinDataSet SkData = null, Texture2D damage = null, bool fixcol = true)
         {
+            if(Initiated == false)
+            {
+                ENSYSCore.InitCore();
+            }
+
             person.gameObject.GetOrAddComponent<BeingSliced>();
             person.Limbs[0].SetSlicedSkinForLimb(skinData.HeadSpr, FlData?.HeadSpr, SkData?.HeadSpr, damage);
 
@@ -343,7 +348,7 @@ namespace Utility
 
         public static void SetSlicedSkinForLimb(this LimbBehaviour limb, Sprite spr, Sprite flsprite, Sprite sksprite, Texture2D damage, float scale = 1)
         {
-
+            Debug.Log(limb.name);
             Sprite oldSprite;
             Vector2 oldSpriteSize = Vector3.zero;
             Vector2 oldAnchor = Vector3.zero;
@@ -394,6 +399,7 @@ namespace Utility
                );
 
             }
+            Debug.Log("PassedJoint");
             var originalSprite = limb.SkinMaterialHandler.renderer.sprite;
             LimbSpriteCache.Key key = new LimbSpriteCache.Key(spr, spr.texture, flsprite.texture, sksprite.texture, scale);
             Debug.Log(flsprite.bounds);
@@ -406,31 +412,32 @@ namespace Utility
                 skval = new LimbSpriteCache.LimbSprites(SlicePivotGrabber(spr.texture, spr), SlicePivotGrabber(flsprite.texture, flsprite), SlicePivotGrabber(sksprite.texture, sksprite));
                 LimbSpriteCache.Instance.Sprites.Add(key, skval);
             }
-
+            Debug.Log("Passedcache");
             LimbSpriteCache.LimbSprites limbSprites = skval;
             limb.SkinMaterialHandler.renderer.sprite = limbSprites.Skin;
 
-
+            Debug.Log("Passedskin");
             if (flsprite != null)
             {
                 limb.SkinMaterialHandler.renderer.material.SetTexture("_FleshTex", flsprite.texture);
             }
+            Debug.Log("Passedfl");
             if (sksprite != null)
             {
                 limb.SkinMaterialHandler.renderer.material.SetTexture("_BoneTex", sksprite.texture);
             }
-
+            Debug.Log("Passedbone");
             if (damage != null)
             {
                 limb.SkinMaterialHandler.renderer.material.SetTexture("_DamageTex", damage);
             }
-
+            Debug.Log("Passeddamagetex");
             ShatteredObjectSpriteInitialiser shatteredObjectSpriteInitialiser;
             if (limb.TryGetComponent<ShatteredObjectSpriteInitialiser>(out shatteredObjectSpriteInitialiser))
             {
                 shatteredObjectSpriteInitialiser.UpdateSprites(limbSprites);
             }
-
+            Debug.Log("Passedshattered");
 
 
 
@@ -504,17 +511,17 @@ namespace Utility
 
                 // limb.gameObject.AddComponent<DebugDrawJoint>();
                 limb.PhysicalBehaviour.RefreshOutline();
-
+                Debug.Log("Passedrefresh");
                 yield return null;
 
                 if(limb.Person.TryGetComponent<BeingSliced>(out var sl))
                 {
                     GameObject.Destroy(sl);
                 }
+                Debug.Log("Passedresliced");
 
+                // limb.gameObject.GetOrAddComponent<HingRestore>();
 
-               // limb.gameObject.GetOrAddComponent<HingRestore>();
-  
 
             }
         }
