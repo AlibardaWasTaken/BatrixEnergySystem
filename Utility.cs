@@ -11,6 +11,9 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Rendering;
+using UnityEngine.UIElements;
+using static ENSYS.ENSYSCore;
+using static Utility.UtilityMethods;
 using Random = UnityEngine.Random;
 
 namespace Utility
@@ -92,6 +95,7 @@ namespace Utility
 
             private void Start()
             {
+                lmb.gameObject.AddComponent<LinkedRopeDecor>().linked=this;
 
             }
 
@@ -433,7 +437,7 @@ namespace Utility
             if (limb.HasJoint)
             {
 
-                limb.Person.StartCoroutine(jointfixcor());
+                ENSYSCore.IEnumStarter.StartCoroutine(jointfixcor());
 
 
 
@@ -442,6 +446,7 @@ namespace Utility
 
             IEnumerator jointfixcor()
             {
+               
 
                 //while (Time.timeScale < 0.98f || Global.main.Paused == true)
                 //{
@@ -500,37 +505,37 @@ namespace Utility
                 // limb.gameObject.AddComponent<DebugDrawJoint>();
                 limb.PhysicalBehaviour.RefreshOutline();
 
-                yield return new WaitForSeconds(3);
+                yield return null;
 
                 if(limb.Person.TryGetComponent<BeingSliced>(out var sl))
                 {
                     GameObject.Destroy(sl);
                 }
 
-                if (Global.main.Paused == false && Time.timeScale > 0.8)
-                {
-                    hingeJoint.autoConfigureConnectedAnchor = true;
-                }
+
+               // limb.gameObject.GetOrAddComponent<HingRestore>();
+  
 
             }
         }
 
-        public class DebugDrawJoint : MonoBehaviour
+        public class HingRestore : MonoBehaviour
         {
-            LimbBehaviour lmb;
-            public void Awake()
+ 
+            public IEnumerator Start()
             {
-                lmb = this.GetComponent<LimbBehaviour>();
+                yield return null;
+             if(this.transform.root.parent == null)
+                {
+
+                    var hingeJoint = this.GetComponent<HingeJoint2D>();
+                    hingeJoint.autoConfigureConnectedAnchor = true;
+                }
+
 
             }
 
-            private void OnWillRenderObject()
-            {
-                ModAPI.Draw.Circle(lmb.Joint.connectedBody.gameObject.transform.TransformPoint(lmb.Joint.connectedAnchor), 0.025f);
-                ModAPI.Draw.Rect(lmb.Joint.connectedBody.gameObject.transform.TransformPoint(lmb.Joint.anchor), Vector2.one * 0.05f);
-                //ModAPI.Draw.Rect(lmb.transform.TransformPoint(lmb.SkinMaterialHandler.renderer.sprite.bounds.size), Vector2.one * 0.05f);
 
-            }
         }
 
 
@@ -646,6 +651,25 @@ namespace Utility
             canvas = GameObject.Find("Canvas").GetComponent<Canvas>();
         }
 
+        public static void CacheHumans()
+        {
+            if(PersonRecorder.RecordedPersons == null)
+            {
+                PersonRecorder.RecordedPersons = new HashSet<PersonBehaviour>();
+                ModAPI.OnItemSpawned += ChachePers;
+            }
+            
+        }
+
+        private static void ChachePers(object sender, UserSpawnEventArgs e)
+        {
+            if (e.Instance.GetComponent<PersonBehaviour>() != null) {
+                e.Instance.AddComponent<PersonRecorder>();
+
+
+            }
+        }
+
         public static void OneTimeAction(this GameObject gameObject, UnityAction Action)
         {
             if (!gameObject.GetComponent<OnCopyFixer>())
@@ -759,8 +783,9 @@ namespace Utility
             DecorSprite.sortingOrder = Object.GetComponent<SpriteRenderer>().sortingOrder + 1;
             DecorSprite.sortingLayerName = Object.GetComponent<SpriteRenderer>().sortingLayerName;
 
-            limb.Person.gameObject.AddComponent<PhysDecoration>().Init(limb, DecorationObj, seconds);
-
+            var pd = limb.Person.gameObject.AddComponent<PhysDecoration>();
+            pd.Init(limb, DecorationObj, seconds);
+            limb.gameObject.AddComponent<LinkedPhysDecor>().linked = pd;
             return DecorationObj;
         }
 
@@ -831,6 +856,22 @@ namespace Utility
         }
     }
 
+    public class PersonRecorder : MonoBehaviour
+    {
+        public static HashSet<PersonBehaviour> RecordedPersons;
+
+
+        private void Start()
+        {
+            RecordedPersons.Add(this.gameObject.GetComponent<PersonBehaviour>());
+        }
+        private void OnDestroy()
+        {
+            RecordedPersons.Remove(this.gameObject.GetComponent<PersonBehaviour>());
+        }
+
+    }
+
     public abstract class AbstractDecor : MonoBehaviour
     {
 
@@ -840,8 +881,9 @@ namespace Utility
     public class DynamicDecoration : AbstractDecor
     {
         private LimbBehaviour limb;
-        private GameObject _obj;
-        private bool IsinAltMod;
+        [SkipSerialisation]
+        public GameObject _obj;
+        public bool IsinAltMod;
         public LightSprite Lsprite;
         public bool IsActive = true;
         public SpriteRenderer sprrend;
@@ -868,14 +910,16 @@ namespace Utility
 
         private void FixedUpdate()
         {
-            if (IsActive == false)
-            {
-                _obj.SetActive(false);
-                return;
-            }
+
 
             if (_obj != null)
             {
+                if (IsActive == false)
+                {
+                    _obj.SetActive(false);
+                    return;
+                }
+
                 if (IsinAltMod == true)
                 {
                     _obj.SetActive(limb.SkinMaterialHandler.AcidProgress < 0.4f || limb.PhysicalBehaviour.burnIntensity < 0.5f);
@@ -893,7 +937,8 @@ namespace Utility
     public class PhysDecoration : AbstractDecor
     {
         public LimbBehaviour limb;
-        private GameObject _obj;
+        [SkipSerialisation]
+        public GameObject _obj;
         private Rigidbody2D rg;
         private bool _inprog = false;
         private float seconds;
@@ -1537,6 +1582,7 @@ namespace Utility
         public bool UseRotation = false;
         public float RotateSpeed = 3;
         public float RotateOffset = 0;
+        public bool ShouldUseRotateOffset = false;
         public bool AltPosMode = false;
         public float AltPosMult = 0.3f;
         private float _rotvel;
@@ -1562,6 +1608,10 @@ namespace Utility
                 return;
 
             float targetAngle = this.transform.eulerAngles.z;
+
+            if (ShouldUseRotateOffset == true)
+                targetAngle += RotateOffset * transform.root.localScale.x;
+
             float angle = Mathf.SmoothDampAngle(obj.transform.eulerAngles.z, targetAngle, ref _rotvel, RotateSmooth);
             obj.transform.rotation = Quaternion.Euler(0f, 0f, angle);
         }
@@ -1584,9 +1634,178 @@ namespace Utility
         UpperArm,
         LowerArm
     }
-    public class LinkedDynamicDecor : MonoBehaviour
+    public class LinkedDynamicDecor : DecalableObj
     {
         public DynamicDecoration Linked;
+
+
+
+        public override void Shoot(Shot shot)
+        {
+            if (this.limb != null)
+            {
+                Color computedColor = limb.CirculationBehaviour.GetComputedColor(limb.GetOriginalBloodType().Color);
+                Decal(new DecalInstruction(limb.BloodDecal, shot.point, computedColor, 1f));
+            }
+        }
+
+        public override void Decal(DecalInstruction instruction)
+        {
+            if (Linked == null)
+            {
+                Destroy(this);
+                return;
+            }
+
+
+
+            if (!UserPreferenceManager.Current.Decals)
+            {
+                return;
+            }
+
+
+            if (Linked.IsActive == false || Linked.IsinAltMod == false)
+            {
+                return;
+            }
+
+            if (!this.decalControllers.Any(e => e.DecalDescriptor == instruction.type))
+            {
+                DecalControllerBehaviour decalControllerBehaviour = Linked._obj.gameObject.AddComponent<DecalControllerBehaviour>();
+                decalControllerBehaviour.DecalDescriptor = instruction.type;
+                decalControllerBehaviour.Decal(instruction);
+                this.decalControllers.Add(decalControllerBehaviour);
+            }
+        }
+
+    }
+
+    public class LinkedPhysDecor : DecalableObj
+    {
+ 
+        public PhysDecoration linked;
+        public override void Decal(DecalInstruction instruction)
+        {
+            if (linked == null)
+            {
+                Destroy(this);
+                return;
+            }
+
+            if (!UserPreferenceManager.Current.Decals)
+            {
+                return;
+            }
+            if (!this.decalControllers.Any((DecalControllerBehaviour e) => e.DecalDescriptor == instruction.type))
+            {
+                DecalControllerBehaviour decalControllerBehaviour = linked._obj.gameObject.AddComponent<DecalControllerBehaviour>();
+                decalControllerBehaviour.DecalDescriptor = instruction.type;
+                decalControllerBehaviour.Decal(instruction);
+                this.decalControllers.Add(decalControllerBehaviour);
+            }
+
+        }
+
+    }
+
+    public class LinkedRopeDecor : DecalableObj
+    {
+        public RopeDecorManager linked;
+
+        public override void Shoot(Shot shot)
+        {
+            if (this.limb != null)
+            {
+                Color computedColor = limb.CirculationBehaviour.GetComputedColor(limb.GetOriginalBloodType().Color);
+                Decal(new DecalInstruction(limb.BloodDecal, shot.point, computedColor, 1f));
+            }
+        }
+
+        public override void Decal(DecalInstruction instruction)
+        {
+            if (linked == null)
+            {
+                Destroy(this);
+                return;
+            }
+
+            if (!UserPreferenceManager.Current.Decals)
+            {
+                return;
+            }
+            var rand = Random.Range(1, 4);
+            for (int i = 0; i < rand; i++)
+            {
+                var closestClothPieces = linked.clothPieces.PickRandom();
+
+                if(piecedic.ContainsKey(closestClothPieces) == false)
+                {
+                    var decalcont = new HashSet<DecalControllerBehaviour>();
+                    piecedic.Add(closestClothPieces, decalcont);
+                }
+                piecedic.TryGetValue(closestClothPieces, out var hashset);
+
+                    if (!hashset.Any(e => e.DecalDescriptor == instruction.type))
+                    {
+                        DecalControllerBehaviour decalControllerBehaviour = closestClothPieces.gameObject.AddComponent<DecalControllerBehaviour>();
+                        decalControllerBehaviour.DecalDescriptor = instruction.type;
+                        decalControllerBehaviour.Decal(instruction);
+                    hashset.Add(decalControllerBehaviour);
+                    }
+                
+            }
+        }
+        Dictionary<Rigidbody2D, HashSet<DecalControllerBehaviour>> piecedic = new Dictionary<Rigidbody2D, HashSet<DecalControllerBehaviour>>();
+    }
+
+    public class DecalableObj : MonoBehaviour
+    {
+        public readonly HashSet<DecalControllerBehaviour> decalControllers = new HashSet<DecalControllerBehaviour>();
+        public float cleantimer;
+        public float cleanuptime = 35;
+        public LimbBehaviour limb;
+
+        public void Awake()
+        {
+            limb = this.GetComponent<LimbBehaviour>();
+        }
+        public virtual void Shoot(Shot shot)
+        {
+            if(this.limb != null)
+            {
+                Color computedColor = limb.CirculationBehaviour.GetComputedColor(limb.GetOriginalBloodType().Color);
+                Decal(new DecalInstruction(limb.BloodDecal, shot.point, computedColor, 1f));
+            }
+        }
+
+        public virtual void Decal(DecalInstruction instruction)
+        {
+            if (!UserPreferenceManager.Current.Decals)
+            {
+                return;
+            }
+            if (!this.decalControllers.Any((DecalControllerBehaviour e) => e.DecalDescriptor == instruction.type))
+            {
+                DecalControllerBehaviour decalControllerBehaviour = gameObject.AddComponent<DecalControllerBehaviour>();
+                decalControllerBehaviour.DecalDescriptor = instruction.type;
+                decalControllerBehaviour.Decal(instruction);
+                this.decalControllers.Add(decalControllerBehaviour);
+            }
+        }
+        void Update()
+        {
+            cleantimer += Time.deltaTime;
+            if(this.cleantimer > cleanuptime)
+            {
+                cleantimer = 0;
+                if (this.decalControllers != null && this.decalControllers.Any<DecalControllerBehaviour>())
+                {
+                    decalControllers.ElementAt(Random.Range(0, decalControllers.Count)).Clear();
+                }
+            }
+
+        }
     }
 
     public static class TextureAutoSlicerRuntime

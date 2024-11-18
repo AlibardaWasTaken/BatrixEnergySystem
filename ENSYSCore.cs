@@ -17,6 +17,9 @@ namespace ENSYS
         public static Dictionary<Transform, DurabilityTagged> DurabilitySystemsUsers = new Dictionary<Transform, DurabilityTagged>();
 
         public static bool Initiated = false;
+
+        public static enumstarter IEnumStarter;
+
         public static void InitCore()
         {
             if (Initiated == true)
@@ -41,10 +44,18 @@ namespace ENSYS
 
 
             new Harmony("Com.Batrix.HTR").PatchAll();
+
+           var enumobj = new GameObject("Enumstr");
+            GameObject.DontDestroyOnLoad(enumobj);
+            IEnumStarter = enumobj.AddComponent<enumstarter>();
         }
 
         private static bool IsInited = false;
 
+        public class enumstarter :MonoBehaviour
+        {
+
+        }
 
         public static void InitMain()
         {
@@ -52,9 +63,10 @@ namespace ENSYS
 
             
             UtilityMethods.FindCanvas();
+            UtilityMethods.CacheHumans();
 
             //if (IsInited == true) return;
-           // IsInited = true;
+            // IsInited = true;
             RegrowthModuleCache.Cache();
         }
 
