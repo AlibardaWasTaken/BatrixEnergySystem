@@ -59,9 +59,9 @@ namespace ENSYS
 
         public static void InitMain()
         {
-            
 
-            
+
+            Debug.Log("InitedMain");
             UtilityMethods.FindCanvas();
             UtilityMethods.CacheHumans();
 

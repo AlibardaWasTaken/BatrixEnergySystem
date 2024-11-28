@@ -399,7 +399,7 @@ namespace Utility
                );
 
             }
-            Debug.Log("PassedJoint");
+           // Debug.Log("PassedJoint");
             var originalSprite = limb.SkinMaterialHandler.renderer.sprite;
             LimbSpriteCache.Key key = new LimbSpriteCache.Key(spr, spr.texture, flsprite.texture, sksprite.texture, scale);
             Debug.Log(flsprite.bounds);
@@ -412,32 +412,32 @@ namespace Utility
                 skval = new LimbSpriteCache.LimbSprites(SlicePivotGrabber(spr.texture, spr), SlicePivotGrabber(flsprite.texture, flsprite), SlicePivotGrabber(sksprite.texture, sksprite));
                 LimbSpriteCache.Instance.Sprites.Add(key, skval);
             }
-            Debug.Log("Passedcache");
+           // Debug.Log("Passedcache");
             LimbSpriteCache.LimbSprites limbSprites = skval;
             limb.SkinMaterialHandler.renderer.sprite = limbSprites.Skin;
 
-            Debug.Log("Passedskin");
+           // Debug.Log("Passedskin");
             if (flsprite != null)
             {
                 limb.SkinMaterialHandler.renderer.material.SetTexture("_FleshTex", flsprite.texture);
             }
-            Debug.Log("Passedfl");
+            //Debug.Log("Passedfl");
             if (sksprite != null)
             {
                 limb.SkinMaterialHandler.renderer.material.SetTexture("_BoneTex", sksprite.texture);
             }
-            Debug.Log("Passedbone");
+           // Debug.Log("Passedbone");
             if (damage != null)
             {
                 limb.SkinMaterialHandler.renderer.material.SetTexture("_DamageTex", damage);
             }
-            Debug.Log("Passeddamagetex");
+           // Debug.Log("Passeddamagetex");
             ShatteredObjectSpriteInitialiser shatteredObjectSpriteInitialiser;
             if (limb.TryGetComponent<ShatteredObjectSpriteInitialiser>(out shatteredObjectSpriteInitialiser))
             {
                 shatteredObjectSpriteInitialiser.UpdateSprites(limbSprites);
             }
-            Debug.Log("Passedshattered");
+           // Debug.Log("Passedshattered");
 
 
 
@@ -511,14 +511,14 @@ namespace Utility
 
                 // limb.gameObject.AddComponent<DebugDrawJoint>();
                 limb.PhysicalBehaviour.RefreshOutline();
-                Debug.Log("Passedrefresh");
+               // Debug.Log("Passedrefresh");
                 yield return null;
 
                 if(limb.Person.TryGetComponent<BeingSliced>(out var sl))
                 {
                     GameObject.Destroy(sl);
                 }
-                Debug.Log("Passedresliced");
+               // Debug.Log("Passedresliced");
 
                 // limb.gameObject.GetOrAddComponent<HingRestore>();
 
@@ -663,9 +663,10 @@ namespace Utility
             if(PersonRecorder.RecordedPersons == null)
             {
                 PersonRecorder.RecordedPersons = new HashSet<PersonBehaviour>();
-                ModAPI.OnItemSpawned += ChachePers;
+                
             }
-            
+            ModAPI.OnItemSpawned += ChachePers;
+
         }
 
         private static void ChachePers(object sender, UserSpawnEventArgs e)
