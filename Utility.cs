@@ -348,7 +348,7 @@ namespace Utility
 
         public static void SetSlicedSkinForLimb(this LimbBehaviour limb, Sprite spr, Sprite flsprite, Sprite sksprite, Texture2D damage, float scale = 1)
         {
-            Debug.Log(limb.name);
+           // Debug.Log(limb.name);
             Sprite oldSprite;
             Vector2 oldSpriteSize = Vector3.zero;
             Vector2 oldAnchor = Vector3.zero;
@@ -402,10 +402,10 @@ namespace Utility
            // Debug.Log("PassedJoint");
             var originalSprite = limb.SkinMaterialHandler.renderer.sprite;
             LimbSpriteCache.Key key = new LimbSpriteCache.Key(spr, spr.texture, flsprite.texture, sksprite.texture, scale);
-            Debug.Log(flsprite.bounds);
+            //Debug.Log(flsprite.bounds);
             if (LimbSpriteCache.Instance.Sprites.TryGetValue(key, out var skval))
             {
-                Debug.Log("Key Present, continue generating texture");
+               // Debug.Log("Key Present, continue generating texture");
             }
             else
             {
