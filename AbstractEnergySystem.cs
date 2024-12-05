@@ -214,7 +214,7 @@ namespace ENSYS
                 {
                     if (DeathLoss == true)
                     {
-                        Energy -= (int)(RegenEnergyAmount * 0.5);
+                        Energy -= Mathf.Clamp((int)(RegenEnergyAmount * 0.5),2,99999);
                     }
                 }
 

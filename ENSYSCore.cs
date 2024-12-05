@@ -95,6 +95,105 @@ namespace ENSYS
         }
 
 
+
+        [HarmonyPatch]
+        public class SunDecalPatcher
+        {
+
+            [HarmonyPatch(typeof(DecalControllerBehaviour), "Decal")]
+            [HarmonyPrefix]
+            public static bool Prefix(DecalControllerBehaviour __instance, DecalInstruction instruction)
+            {
+                // Debug.Log(instruction.colourMultiplier.r + " " + instruction.colourMultiplier.g + " " + instruction.colourMultiplier.b);
+                //  Debug.Log("zalupa " + __instance.DecalDescriptor.Color.r + " " + __instance.DecalDescriptor.Color.g + " " + __instance.DecalDescriptor.Color.b);
+
+                if (instruction.colourMultiplier.r > 2f || instruction.colourMultiplier.g > 2f || instruction.colourMultiplier.b > 2f)
+                {
+                    //Debug.Log("1");
+                    if (!UserPreferenceManager.Current.Decals)
+                    {
+                        return false;
+                    }
+                    if (__instance.DecalDescriptor != instruction.type)
+                    {
+                        return false;
+                    }
+                    if (!__instance.GetField<DecalControllerBehaviour, bool>("dirty"))
+                    {
+                        //Debug.Log("2");
+                        __instance.InvokeMethodRef("CreateContainer");
+
+                        // Debug.Log("3");
+                    }
+                    // Debug.Log("4");
+                    if (!__instance.decalHolder)
+                    {
+                        return false;
+                    }
+                    Vector2 vector = __instance.transform.InverseTransformPoint(instruction.globalPosition);
+                    if (__instance.InvokeMethodRef<bool>("IsNearOtherDecal", new object[] { vector }))
+                    {
+
+                        return false;
+                    }
+                    // Debug.Log("5");
+                    GameObject gameObject = new GameObject("decal");
+                    float d = instruction.size * UnityEngine.Random.Range(1f, 1.2f);
+                    gameObject.isStatic = true;
+                    gameObject.transform.SetParent(__instance.decalHolder.transform, true);
+                    gameObject.transform.localScale = __instance.decalHolder.transform.InverseTransformVector(d * Vector3.one);
+                    gameObject.transform.localRotation = Quaternion.LookRotation(Vector3.forward, __instance.decalHolder.transform.InverseTransformDirection(Vector3.zero));
+                    gameObject.transform.localPosition = vector;
+                    SpriteRenderer spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
+                    spriteRenderer.sprite = __instance.DecalDescriptor.Sprites.PickRandom<Sprite>();
+                    spriteRenderer.color = (__instance.DecalDescriptor.Color * instruction.colourMultiplier) * 0.08f;
+                    spriteRenderer.material = ModAPI.FindMaterial("VeryBright");
+                    if (UserPreferenceManager.Current.GorelessMode)
+                    {
+                        SpriteRenderer spriteRenderer2 = spriteRenderer;
+                        Color color = spriteRenderer.color;
+                        spriteRenderer2.color = Utils.ChangeRedToOrange(color, 0.03f);
+                    }
+                    spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+                    spriteRenderer.sortingLayerID = __instance.GetField<DecalControllerBehaviour, ValueTuple<int, int>>("originalSortingLayer").Item1;
+                    spriteRenderer.sortingOrder = __instance.GetField<DecalControllerBehaviour, ValueTuple<int, int>>("originalSortingLayer").Item2 + 1;
+                    // Debug.Log("6");
+                    // if (__instance.DecalDescriptor.GetField<DecalDescriptor, bool>("WillDrip"))
+                    // {
+                    //  Debug.Log("7");
+                    int minInclusive = Mathf.Min(__instance.DecalDescriptor.MaxDripCount, __instance.DecalDescriptor.MinDripCount);
+                    int maxExclusive = Mathf.Max(__instance.DecalDescriptor.MaxDripCount, __instance.DecalDescriptor.MinDripCount);
+                    for (int i = 0; i <= UnityEngine.Random.Range(minInclusive, maxExclusive); i++)
+                    {
+                        GameObject gameObject2 = new GameObject("streak");
+                        gameObject2.transform.SetParent(gameObject.transform);
+                        gameObject2.transform.localPosition = UnityEngine.Random.insideUnitCircle * d / 2f;
+                        gameObject2.transform.localScale = UnityEngine.Random.Range(0.02f, 0.05f) * Vector3.one;
+                        SpriteRenderer spriteRenderer3 = gameObject2.AddComponent<SpriteRenderer>();
+                        spriteRenderer3.sprite = __instance.DecalDescriptor.DripParticle;
+                        spriteRenderer3.color = spriteRenderer.color;
+                        spriteRenderer3.material = ModAPI.FindMaterial("VeryBright");
+                        spriteRenderer3.maskInteraction = spriteRenderer.maskInteraction;
+                        spriteRenderer3.sortingLayerID = spriteRenderer.sortingLayerID;
+                        spriteRenderer3.sortingOrder = spriteRenderer.sortingOrder;
+                        spriteRenderer3.drawMode = SpriteDrawMode.Sliced;
+                        gameObject2.AddComponent<DecalDripStreakBehaviour>();
+                    }
+                    // }
+                    __instance.localDecalPositions.Add(vector);
+                }
+                else
+                {
+
+                    return true;
+                }
+
+
+                return false;
+            }
+
+        }
+
         [HarmonyPatch]
         public class SlashPatcher
         {

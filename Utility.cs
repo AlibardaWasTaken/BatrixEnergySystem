@@ -8,6 +8,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Rendering;
@@ -21,6 +22,55 @@ namespace Utility
     public static class UtilityMethods
     {
 
+        public static void CreateFloatDialog(string title, string placeholder, Action<float> output)
+        {
+            DialogBox dialog = (DialogBox)null;
+            dialog = DialogBoxManager.TextEntry(title, placeholder, new DialogButton[]
+            {
+                new DialogButton("Close", true, () => { }),
+                new DialogButton("Enter", true, () =>
+                {
+                    var result = 0f;
+                    float.TryParse(dialog.EnteredText, out result);
+                    output.Invoke(result);
+                })
+            });
+            dialog.InputField.contentType = TMP_InputField.ContentType.DecimalNumber;
+        }
+
+        public static object InvokeMethodRef(this object obj, string nameMethod, params object[] args)
+        {
+            return obj.GetType().GetMethod(nameMethod, BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).Invoke(obj, args);
+        }
+        public static object InvokeMethodRef(this object obj, string nameMethod)
+        {
+            return obj.GetType().GetMethod(nameMethod, BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).Invoke(obj, Array.Empty<object>());
+        }
+        public static object InvokeMethodRef(this Type type, string nameMethod)
+        {
+            return type.GetMethod(nameMethod, BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).Invoke(null, Array.Empty<object>());
+        }
+        public static object InvokeMethodRef(this Type type, string nameMethod, params object[] args)
+        {
+            return type.GetMethod(nameMethod, BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).Invoke(null, args);
+        }
+        public static T InvokeMethodRef<T>(this Type type, string nameMethod)
+        {
+            return (T)InvokeMethodRef(type, nameMethod);
+        }
+        public static T InvokeMethodRef<T>(this object obj, string nameMethod)
+        {
+            return (T)InvokeMethodRef(obj, nameMethod);
+        }
+        public static T InvokeMethodRef<T>(this Type type, string nameMethod, params object[] args)
+        {
+            return (T)InvokeMethodRef(type, nameMethod, args);
+        }
+        public static T InvokeMethodRef<T>(this object obj, string nameMethod, params object[] args)
+        {
+            return (T)InvokeMethodRef(obj, nameMethod, args);
+
+        }
 
         public static bool IsInfEnergyEnabled = false;
         public static Canvas canvas;
@@ -2148,6 +2198,182 @@ namespace Utility
             });
 
 
+        }
+    }
+
+
+
+    public class TimeSlowerManager
+    {
+        public interface ITimeStopUser
+        {
+            float SelectedSpeedScale { get; set; }
+            GameObject thisGameobject { get; set; }
+        }
+        public static float ScaledDeltaTime
+        {
+            get
+            {
+                return Time.deltaTime * (CurrentUser == null ? 1f : CurrentUser.SelectedSpeedScale);
+            }
+        }
+        public static float CurrentSpeedScale
+        {
+            get
+            {
+                return CurrentUser == null ? 1f : CurrentUser.SelectedSpeedScale;
+            }
+        }
+
+        public void SwitchTime(ITimeStopUser caller)
+        {
+            if (TimeSlowerManager.CurrentUser == caller)
+            {
+                TimeSlowerManager.CurrentUser = null;
+                TimeSlowerManager.ToggleSlowTime();
+            }
+            else if (MaxSpeedScale > TimeSlowerManager.CurrentSpeedScale)
+            {
+
+                TimeSlowerManager.CurrentUser = caller;
+                TimeSlowerManager.ToggleSlowTime();
+            }
+        }
+
+
+
+        public static ITimeStopUser CurrentUser;
+        public static HashSet<TimeManaged> ScaledObjects = new HashSet<TimeManaged>();
+        public static Dictionary<GameObject, ITimeStopUser> PassiveUsers = new Dictionary<GameObject, ITimeStopUser>();
+        public static float MaxSpeedScale = 17f;
+
+        public static void ToggleSlowTime()
+        {
+            foreach (TimeManaged scaledObject in ScaledObjects)
+            {
+                scaledObject.UpdateTimeScale();
+            }
+        }
+    }
+
+    [SkipSerialisation]
+    public abstract class TimeManaged : MonoBehaviour
+    {
+        public void Start()
+        {
+            TimeSlowerManager.ScaledObjects.Add(this);
+            AfterAwake();
+            UpdateTimeScale();
+        }
+        public void OnDestroy()
+        {
+            TimeSlowerManager.ScaledObjects.Remove(this);
+        }
+        public abstract void UpdateTimeScale();
+        public abstract void AfterAwake();
+    }
+
+    [SkipSerialisation]
+    public class PBTimeManaged : TimeManaged
+    {
+        public PhysicalBehaviour pb;
+        public float? OriginalGravityScale = null;
+        public float? OriginalAng = null;
+        public float? OriginalDrg = null;
+        public override void AfterAwake()
+        {
+        }
+        public override void UpdateTimeScale()
+        {
+            if (OriginalGravityScale == null)
+            {
+                OriginalGravityScale = pb.rigidbody.gravityScale;
+                OriginalAng = pb.rigidbody.angularDrag;
+
+            }
+
+            if (TimeSlowerManager.CurrentUser != null && TimeSlowerManager.CurrentUser.thisGameobject.transform.root == this.transform.root)
+            {
+                return;
+            }
+
+            if (TimeSlowerManager.CurrentUser != null && TimeSlowerManager.PassiveUsers.TryGetValue(transform.root.gameObject, out TimeSlowerManager.ITimeStopUser user))
+            {
+                pb.rigidbody.gravityScale = (float)OriginalGravityScale * (Mathf.Clamp(TimeSlowerManager.MaxSpeedScale, 1, TimeSlowerManager.CurrentUser.SelectedSpeedScale) / TimeSlowerManager.CurrentSpeedScale);
+                pb.rigidbody.angularDrag = (float)OriginalAng / (Mathf.Clamp(TimeSlowerManager.MaxSpeedScale, 1, TimeSlowerManager.CurrentUser.SelectedSpeedScale) / TimeSlowerManager.CurrentSpeedScale);
+            }
+            else
+            {
+                pb.rigidbody.gravityScale = (float)OriginalGravityScale / TimeSlowerManager.CurrentSpeedScale;
+                pb.rigidbody.angularDrag = (float)OriginalAng * TimeSlowerManager.CurrentSpeedScale;
+            }
+        }
+    }
+
+    [SkipSerialisation]
+    public class ParticlesTimeManaged : TimeManaged
+    {
+        public ParticleSystem ParticleSystemComponent;
+        public float OriginalPlaybackSpeed;
+        public override void AfterAwake()
+        {
+            OriginalPlaybackSpeed = ParticleSystemComponent.playbackSpeed;
+        }
+        public override void UpdateTimeScale()
+        {
+            if (TimeSlowerManager.CurrentUser != null && TimeSlowerManager.PassiveUsers.TryGetValue(transform.root.gameObject, out TimeSlowerManager.ITimeStopUser user))
+            {
+                ParticleSystemComponent.playbackSpeed = OriginalPlaybackSpeed * Mathf.Clamp(TimeSlowerManager.MaxSpeedScale, 1, TimeSlowerManager.CurrentUser.SelectedSpeedScale) / TimeSlowerManager.CurrentSpeedScale;
+            }
+            else
+            {
+                ParticleSystemComponent.playbackSpeed = OriginalPlaybackSpeed / TimeSlowerManager.CurrentSpeedScale;
+            }
+        }
+    }
+
+    [SkipSerialisation]
+    public class HumansTimeManaged : TimeManaged
+    {
+        public PersonBehaviour Person;
+        public float OriginalStrength;
+        public float OriginalImpactDamageMultiplier;
+        public override void AfterAwake()
+        {
+            OriginalStrength = Person.Limbs[0].BaseStrength;
+            OriginalImpactDamageMultiplier = Person.Limbs[0].ImpactDamageMultiplier;
+        }
+        public override void UpdateTimeScale()
+        {
+            if (TimeSlowerManager.CurrentUser != null && TimeSlowerManager.CurrentUser.thisGameobject.transform.root == this.transform.root)
+            {
+                return;
+            }
+
+            if (TimeSlowerManager.CurrentUser != null && TimeSlowerManager.PassiveUsers.TryGetValue(transform.root.gameObject, out TimeSlowerManager.ITimeStopUser user))
+            {
+                foreach (RagdollPose poseState in Person.LinkedPoses.Values)
+                {
+                    poseState.AnimationSpeedMultiplier = -1f * Mathf.Clamp(TimeSlowerManager.MaxSpeedScale, 1, TimeSlowerManager.CurrentUser.SelectedSpeedScale) / TimeSlowerManager.CurrentSpeedScale;
+                }
+                foreach (LimbBehaviour limb in Person.Limbs)
+                {
+                    limb.BaseStrength = OriginalStrength * Mathf.Clamp(TimeSlowerManager.MaxSpeedScale, 1, TimeSlowerManager.CurrentUser.SelectedSpeedScale) / TimeSlowerManager.CurrentSpeedScale;
+                    limb.ImpactDamageMultiplier = OriginalImpactDamageMultiplier * TimeSlowerManager.CurrentSpeedScale / Mathf.Clamp(TimeSlowerManager.MaxSpeedScale, 1, TimeSlowerManager.CurrentUser.SelectedSpeedScale);
+                }
+            }
+            else
+            {
+                foreach (RagdollPose poseState in Person.LinkedPoses.Values)
+                {
+                    poseState.AnimationSpeedMultiplier = -1f / TimeSlowerManager.CurrentSpeedScale;
+                }
+                foreach (LimbBehaviour limb in Person.Limbs)
+                {
+                    limb.BaseStrength = OriginalStrength / TimeSlowerManager.CurrentSpeedScale;
+                    limb.ImpactDamageMultiplier = OriginalImpactDamageMultiplier * TimeSlowerManager.CurrentSpeedScale;
+                }
+            }
         }
     }
 
