@@ -801,6 +801,8 @@ namespace Utility
             dd.sprrend = DecorSprite;
             dd.Lsprite = li;
 
+
+
             DecorationObj.AddComponent<LinkedDynamicDecor>().Linked = dd;
             limb.gameObject.AddComponent<LinkedDynamicDecor>().Linked = dd;
             return DecorationObj;
@@ -819,6 +821,31 @@ namespace Utility
             return children;
         }
 
+        public static BurnAffected MakeBurnable(this GameObject obj, GameObject linkTo, bool shouldcopy = true, float burnmult = 1f)
+        {
+            if(obj.GetComponent<SpriteRenderer>() == null)
+            {
+                Debug.LogError("There is no SRenderer on obj");
+                return null;
+
+            }
+
+
+            if (linkTo.TryGetComponent<PhysicalBehaviour>(out var ph) == false)
+            {
+                Debug.LogError("There is no PB on obj");
+                return null;
+
+            }
+
+
+            var cloth = obj.gameObject.AddComponent<BurnAffected>();
+            cloth.LinkedPhys = ph;
+            cloth.Shouldcopy = shouldcopy;
+            cloth.mult = burnmult;
+
+            return cloth;
+        }
         public static GameObject SetUpPhysDecor(this GameObject Object, Vector3 pos, Vector3 scale, LimbBehaviour limb, Sprite sprite = null, bool IsGlow = true, Color col = default, float seconds = 0.1f)
         {
             GameObject DecorationObj = ModAPI.CreatePhysicalObject("PhysDecor" + Random.Range(-1000, 1000).ToString(), sprite);
@@ -935,6 +962,62 @@ namespace Utility
 
     }
 
+    public class BurnAffected : MonoBehaviour
+    {
+        public static Material Material;
+        public float mult = 1f;
+        public PhysicalBehaviour LinkedPhys
+        {
+            get
+            {
+                return _phys;
+            }
+            set
+            {
+                if (value == null)
+                {
+                    Shouldcopy = false;
+                    return;
+                }
+                Shouldcopy = true;
+                _phys = value;
+            }
+        }
+        [SerializeField]
+        private PhysicalBehaviour _phys;
+      
+        public bool Shouldcopy = false;
+        public float BurnProgress
+        {
+            get
+            {
+                if (Shouldcopy) return Mathf.Clamp01(LinkedPhys.BurnProgress);
+                return Mathf.Clamp01(NonCopyProg);
+            }
+            set
+            {
+                if (Shouldcopy) return;
+                NonCopyProg = value;
+            }
+        }
+
+        public float NonCopyProg;
+        [SerializeField]
+        private SpriteRenderer spriteRenderer;
+        private void Start()
+        {
+            if (Material == null)
+            {
+                Material = ModAPI.FindSpawnable("Crate").Prefab.GetComponent<SpriteRenderer>().material;
+            }
+            spriteRenderer = gameObject.GetComponent<SpriteRenderer>();
+            spriteRenderer.material = Material;
+        }
+        private void Update()
+        {
+            spriteRenderer.material.SetFloat("_Progress", BurnProgress * mult);
+        }
+    }
 
     public class DynamicDecoration : AbstractDecor
     {
@@ -980,7 +1063,9 @@ namespace Utility
 
                 if (IsinAltMod == true)
                 {
-                    _obj.SetActive(limb.SkinMaterialHandler.AcidProgress < 0.4f || limb.PhysicalBehaviour.burnIntensity < 0.5f);
+                    var hueta = limb.SkinMaterialHandler.AcidProgress < 0.4f && limb.PhysicalBehaviour.BurnProgress < 0.5f;
+                   // Debug.Log(hueta);
+                    _obj.SetActive(hueta);
                     return;
                 }
 

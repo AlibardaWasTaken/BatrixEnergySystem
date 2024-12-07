@@ -68,6 +68,28 @@ namespace ENSYS
             //if (IsInited == true) return;
             // IsInited = true;
             RegrowthModuleCache.Cache();
+
+
+            UtilityMethods.DelayedInvoke(0.15f, () =>
+            {
+                foreach (GameObject Obj in Resources.FindObjectsOfTypeAll(typeof(GameObject)) as GameObject[])
+                {
+                    if (Obj.TryGetComponent(out PhysicalBehaviour phys))
+                    {
+                        Obj.GetOrAddComponent<PBTimeManaged>().pb = phys;
+                    }
+                    if (Obj.TryGetComponent(out ParticleSystem particleSystem))
+                    {
+                        Obj.GetOrAddComponent<ParticlesTimeManaged>().ParticleSystemComponent = particleSystem;
+                    }
+                    if (Obj.TryGetComponent(out PersonBehaviour personBehaviour))
+                    {
+                        Obj.GetOrAddComponent<HumansTimeManaged>().Person = personBehaviour;
+                    }
+                }
+
+            });
+
         }
 
         public static EnergySystem GetEnergySystem(Transform target)
