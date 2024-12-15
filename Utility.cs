@@ -1,4 +1,5 @@
 ﻿using ENSYS;
+using HarmonyLib;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 using TMPro;
@@ -19,6 +21,155 @@ using Random = UnityEngine.Random;
 
 namespace Utility
 {
+    public static class LerpUtilities
+    {
+
+
+
+
+        /// <summary>
+        /// Smoothly interpolates a float value over time.
+        /// </summary>
+        /// <param name="startValue">The initial float value.</param>
+        /// <param name="targetValue">The target float value.</param>
+        /// <param name="duration">The duration of the interpolation.</param>
+        /// <param name="onValueUpdated">Callback for updating the interpolated value during the Lerp.</param>
+        /// <param name="onComplete">Callback for when the Lerp is complete.</param>
+        public static void SmoothFloatLerp(
+            float startValue,
+            float targetValue,
+            float duration,
+            Action<float> onValueUpdated,
+            Action onComplete = null)
+        {
+            ENSYSCore.IEnumStarter.StartCoroutine(FloatLerpCoroutine(startValue, targetValue, duration, onValueUpdated, onComplete));
+        }
+
+        private static IEnumerator FloatLerpCoroutine(
+            float startValue,
+            float targetValue,
+            float duration,
+            Action<float> onValueUpdated,
+            Action onComplete)
+        {
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                float currentValue = Mathf.Lerp(startValue, targetValue, elapsed / duration);
+                onValueUpdated?.Invoke(currentValue);
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            // Ensure the final value is set and invoke the completion callback.
+            onValueUpdated?.Invoke(targetValue);
+            onComplete?.Invoke();
+        }
+
+
+
+
+        /// <summary>
+        /// Smoothly moves an object from its current position to the target position.
+        /// </summary>
+        /// <param name="objectToMove">The object to move.</param>
+        /// <param name="targetPosition">The position to move to.</param>
+        /// <param name="duration">The duration of the movement.</param>
+        public static void SmoothMove(Transform objectToMove, Vector3 targetPosition, float duration)
+        {
+            ENSYSCore.IEnumStarter.StartCoroutine(MoveCoroutine(objectToMove, targetPosition, duration));
+        }
+        
+        private static IEnumerator MoveCoroutine(Transform objectToMove, Vector3 targetPosition, float duration)
+        {
+            Vector3 startPosition = objectToMove.position;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                objectToMove.position = Vector3.Lerp(startPosition, targetPosition, elapsed / duration);
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            objectToMove.position = targetPosition;
+        }
+
+
+        public static void SmoothLocalMove(Transform objectToMove, Vector3 targetPosition, float duration)
+        {
+            ENSYSCore.IEnumStarter.StartCoroutine(MoveLocalCoroutine(objectToMove, targetPosition, duration));
+        }
+
+        private static IEnumerator MoveLocalCoroutine(Transform objectToMove, Vector3 targetPosition, float duration)
+        {
+            Vector3 startPosition = objectToMove.localPosition;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                objectToMove.localPosition = Vector3.Lerp(startPosition, targetPosition, elapsed / duration);
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            objectToMove.localPosition = targetPosition;
+        }
+
+        /// <summary>
+        /// Smoothly changes the color of a material over time.
+        /// </summary>
+        /// <param name="renderer">The Renderer whose material color will change.</param>
+        /// <param name="targetColor">The color to transition to.</param>
+        /// <param name="duration">The duration of the transition.</param>
+        public static void SmoothColorChange(SpriteRenderer renderer, Color targetColor, float duration)
+        {
+            ENSYSCore.IEnumStarter.StartCoroutine(ColorCoroutine(renderer, targetColor, duration));
+        }
+
+        private static IEnumerator ColorCoroutine(SpriteRenderer renderer, Color targetColor, float duration)
+        {
+            Color startColor = renderer.color;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                renderer.color = Color.Lerp(startColor, targetColor, elapsed / duration);
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            renderer.color = targetColor;
+        }
+
+        /// <summary>
+        /// Smoothly scales an object over time.
+        /// </summary>
+        /// <param name="objectToScale">The object to scale.</param>
+        /// <param name="targetScale">The scale to transition to.</param>
+        /// <param name="duration">The duration of the scaling.</param>
+        public static void SmoothScale(Transform objectToScale, Vector3 targetScale, float duration)
+        {
+            ENSYSCore.IEnumStarter.StartCoroutine(ScaleCoroutine(objectToScale, targetScale, duration));
+        }
+
+        private static IEnumerator ScaleCoroutine(Transform objectToScale, Vector3 targetScale, float duration)
+        {
+            Vector3 startScale = objectToScale.localScale;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                objectToScale.localScale = Vector3.Lerp(startScale, targetScale, elapsed / duration);
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            objectToScale.localScale = targetScale;
+        }
+    }
+
     public static class UtilityMethods
     {
 
@@ -713,7 +864,9 @@ namespace Utility
             if(PersonRecorder.RecordedPersons == null)
             {
                 PersonRecorder.RecordedPersons = new HashSet<PersonBehaviour>();
-                
+                PersonRecorder.PersonsRoots = new Dictionary<Transform, PersonBehaviour>();
+
+
             }
             ModAPI.OnItemSpawned += ChachePers;
 
@@ -722,7 +875,7 @@ namespace Utility
         private static void ChachePers(object sender, UserSpawnEventArgs e)
         {
             if (e.Instance.GetComponent<PersonBehaviour>() != null) {
-                e.Instance.AddComponent<PersonRecorder>();
+                e.Instance.GetOrAddComponent<PersonRecorder>();
 
 
             }
@@ -944,15 +1097,18 @@ namespace Utility
     public class PersonRecorder : MonoBehaviour
     {
         public static HashSet<PersonBehaviour> RecordedPersons;
-
+        public static Dictionary<Transform,PersonBehaviour> PersonsRoots;
 
         private void Start()
         {
-            RecordedPersons.Add(this.gameObject.GetComponent<PersonBehaviour>());
+            var person = this.gameObject.GetComponent<PersonBehaviour>();
+            RecordedPersons.Add(person);
+            PersonsRoots.Add(this.transform, person);
         }
         private void OnDestroy()
         {
             RecordedPersons.Remove(this.gameObject.GetComponent<PersonBehaviour>());
+            PersonsRoots.Remove(this.transform);
         }
 
     }
@@ -1021,6 +1177,8 @@ namespace Utility
 
     public class DynamicDecoration : AbstractDecor
     {
+        public float BurnHold = 0.5f;
+        public float AcidHold = 0.4f;
         private LimbBehaviour limb;
         [SkipSerialisation]
         public GameObject _obj;
@@ -1063,7 +1221,7 @@ namespace Utility
 
                 if (IsinAltMod == true)
                 {
-                    var hueta = limb.SkinMaterialHandler.AcidProgress < 0.4f && limb.PhysicalBehaviour.BurnProgress < 0.5f;
+                    var hueta = limb.SkinMaterialHandler.AcidProgress < AcidHold && limb.PhysicalBehaviour.BurnProgress < BurnHold;
                    // Debug.Log(hueta);
                     _obj.SetActive(hueta);
                     return;
@@ -2290,26 +2448,205 @@ namespace Utility
 
     public class TimeSlowerManager
     {
-        public interface ITimeStopUser
+        public static Dictionary<PersonBehaviour, float> ActiveUsers = new Dictionary<PersonBehaviour, float>();
+
+        // Maximum allowed speed scale (highest possible slow factor)
+        public static float MaxSpeedScale = 20f;
+
+        private static float debugval = 1;
+
+
+        [HarmonyPatch(typeof(BallisticsEmitter), "BallisticIteration")]
+        public static class BallisticsEmitter_BallisticIteration_Transpiler
         {
-            float SelectedSpeedScale { get; set; }
-            GameObject thisGameobject { get; set; }
+            [HarmonyTranspiler]
+            public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var getDeltaTime = AccessTools.PropertyGetter(typeof(UnityEngine.Time), nameof(UnityEngine.Time.deltaTime));
+                var getScaledDeltaTime = AccessTools.PropertyGetter(typeof(TimeSlowerManager), "ScaledDeltaTime");
+
+                foreach (var instruction in instructions)
+                {
+                    if (instruction.opcode == OpCodes.Call && Equals(instruction.operand, getDeltaTime))
+                    {
+                        yield return new CodeInstruction(OpCodes.Call, getScaledDeltaTime);
+                    }
+                    else
+                    {
+                        yield return instruction;
+                    }
+                }
+            }
         }
+
+
+        //[HarmonyPatch(typeof(BlasterBehaviour), "Shoot")]
+        //public static class BlasterBehaviour_Shoot_PrefixPatch
+        //{
+        //    [HarmonyPrefix]
+        //    public static bool Prefix(BlasterBehaviour __instance)
+        //    {
+
+        //        if(CurrentSpeedScale < 1.1)
+        //        {
+        //            return true;
+        //        }
+
+        //        Vector2 vector = __instance.BarrelPosition;
+        //        Vector2 a = __instance.BarrelDirection;
+        //        __instance.SetField("t",0f);
+        //        __instance.GetComponent<PhysicalBehaviour>().rigidbody.AddForceAtPosition(a * -__instance.Recoil, vector, ForceMode2D.Impulse);
+        //        var bolt = UnityEngine.Object.Instantiate<GameObject>(__instance.Bolt, vector, Quaternion.identity);
+        //            bolt.transform.right = a + __instance.InaccuracyMultiplier * UnityEngine.Random.insideUnitCircle;
+        //        bolt.GetComponent<BlasterboltBehaviour>().Speed /= CurrentSpeedScale;
+        //        __instance.blasterSoundSource.PlayOneShot((__instance.Clips != null && __instance.Clips.Length != 0) ? __instance.Clips.PickRandom<AudioClip>() : __instance.blasterSoundSource.clip);
+        //        CameraShakeBehaviour.main.Shake(0.5f * __instance.ScreenShakeMultiplier, vector, 1f);
+        //        __instance.Muzzleflash.Play();
+
+
+        //        return false;
+        //    }
+        //}
+
+
+
+        [HarmonyPatch(typeof(BlasterboltBehaviour), "Update")]
+        public static class BlasterboltBehaviourPrefixPatch
+        {
+            public static Dictionary<BlasterboltBehaviour,float> InitialSpeed = new Dictionary<BlasterboltBehaviour, float>();
+            [HarmonyPrefix]
+            public static void PostFix(BlasterboltBehaviour __instance)
+            {
+                if(CurrentSpeedScale > 1.1)
+                {
+                    if(InitialSpeed.ContainsKey(__instance) == false)
+                    {
+                        InitialSpeed.Add(__instance, __instance.Speed);
+                    }
+                    __instance.Speed = InitialSpeed[__instance] / CurrentSpeedScale;
+                }
+              
+            }
+        }
+
+
+        public static float CalculateAppliedScale(Transform Obj)
+        {
+            var globalScale = TimeSlowerManager.CurrentSpeedScale;
+            var appliedScale = globalScale;
+
+            PersonRecorder.PersonsRoots.TryGetValue(Obj.transform.root, out var Person);
+
+            if(Person == null)
+            {
+                return globalScale;
+            }
+
+            // Check if this person is one of the active users (i.e., their root GameObject is a key in ActiveUsers)
+            if (TimeSlowerManager.ActiveUsers.TryGetValue(Person, out float mySlowValue))
+            {
+                // This person is actively slowing time, so adjust their scale
+                // This ratio ensures that if their slow value matches the global max,
+                // they'll be unaffected (scale=1). If it's lower, they'll be partially affected.
+                float maxSlow = TimeSlowerManager.GetMaxSlow;
+                if (mySlowValue > 0f)
+                {
+                    appliedScale = maxSlow / mySlowValue;
+                }
+                else
+                {
+                    // In case of a zero slow value (shouldn't happen), just default to 1 (no effect)
+                    appliedScale = 1f;
+                }
+            }
+            else
+            {
+                // Person is not an active user, just use the global scale
+                appliedScale = globalScale;
+            }
+
+            return appliedScale;
+        }
+
+
+
+        // Returns the maximum slow factor from all active users. If none are active, returns 1.
+        public static float GetMaxSlow
+        {
+            get
+            {
+                return (ActiveUsers.Count == 0 ? 1f : ActiveUsers.Values.Max());
+            }
+        }
+
+        // Scaled delta time for use in time-managed behaviors.
         public static float ScaledDeltaTime
         {
             get
             {
-                return Time.deltaTime * (CurrentUser == null ? 1f : CurrentUser.SelectedSpeedScale);
+                return Time.deltaTime * GetMaxSlow;
             }
         }
+
+        // Current speed scale is simply the maximum slow factor.
         public static float CurrentSpeedScale
         {
             get
             {
-                return CurrentUser == null ? 1f : CurrentUser.SelectedSpeedScale;
+                return GetMaxSlow;
             }
         }
 
+        public static HashSet<TimeManaged> ScaledObjects = new HashSet<TimeManaged>();
+
+        /// <summary>
+        /// Activates time slow for a particular user. If the user is already active, updates their slow value.
+        /// </summary>
+        public static void ActivateTimeSlow(PersonBehaviour gameObj, float slowValue)
+        {
+            slowValue = Mathf.Clamp(slowValue, 0.01f, MaxSpeedScale);
+
+            if (!ActiveUsers.ContainsKey(gameObj))
+            {
+                ActiveUsers.Add(gameObj, slowValue);
+            }
+            else
+            {
+                ActiveUsers[gameObj] = slowValue;
+            }
+
+            // Update all scaled objects since a new slow factor might have changed the maximum
+            ToggleSlowTime();
+        }
+
+        /// <summary>
+        /// Deactivates time slow for a particular user, removing them from the active users.
+        /// </summary>
+        public static void DeactivateTimeSlow(PersonBehaviour gameObj)
+        {
+            if (ActiveUsers.ContainsKey(gameObj))
+            {
+                ActiveUsers.Remove(gameObj);
+                ToggleSlowTime();
+            }
+        }
+
+        /// <summary>
+        /// Updates the time scaling on all registered time-managed objects.
+        /// </summary>
+        public static void ToggleSlowTime()
+        {
+            foreach (TimeManaged scaledObject in ScaledObjects)
+            {
+                if (scaledObject != null) // Ensure object wasn't destroyed
+                {
+                    scaledObject.UpdateTimeScale();
+                }
+            }
+        }
+
+
+        [Obsolete]
         public void SwitchTime(ITimeStopUser caller)
         {
             if (TimeSlowerManager.CurrentUser == caller)
@@ -2325,73 +2662,110 @@ namespace Utility
             }
         }
 
-
-
-        public static ITimeStopUser CurrentUser;
-        public static HashSet<TimeManaged> ScaledObjects = new HashSet<TimeManaged>();
-        public static Dictionary<GameObject, ITimeStopUser> PassiveUsers = new Dictionary<GameObject, ITimeStopUser>();
-        public static float MaxSpeedScale = 17f;
-
-        public static void ToggleSlowTime()
+        [Obsolete]
+        public interface ITimeStopUser
         {
-            foreach (TimeManaged scaledObject in ScaledObjects)
-            {
-                scaledObject.UpdateTimeScale();
-            }
+            float SelectedSpeedScale { get; set; }
+            GameObject thisGameobject { get; set; }
         }
+
+        [Obsolete]
+        public static ITimeStopUser CurrentUser;
+
+
+        [Obsolete]
+        public static Dictionary<GameObject, ITimeStopUser> PassiveUsers = new Dictionary<GameObject, ITimeStopUser>();
+
     }
 
     [SkipSerialisation]
     public abstract class TimeManaged : MonoBehaviour
     {
+      
+
+
         public void Start()
         {
             TimeSlowerManager.ScaledObjects.Add(this);
             AfterAwake();
             UpdateTimeScale();
         }
+
         public void OnDestroy()
         {
             TimeSlowerManager.ScaledObjects.Remove(this);
         }
+
         public abstract void UpdateTimeScale();
         public abstract void AfterAwake();
     }
 
     [SkipSerialisation]
+    public class GunTimeManaged : TimeManaged
+    {
+        public FirearmBehaviour Firearm;
+        private float? OriginalFireRate = null;
+
+
+        public override void AfterAwake()
+        {
+            DelayedInvoke(0.1f, () =>
+            {
+                if (Firearm != null)
+                {
+                    foreach (var item in gameObject.GetComponentsInChildren<ParticleSystem>())
+                    {
+                        item.gameObject.GetOrAddComponent<ParticlesTimeManaged>().ParticleSystemComponent = item;
+                    }
+                }
+            });
+        }
+
+        public override void UpdateTimeScale()
+        {
+            if (OriginalFireRate == null)
+            {
+                OriginalFireRate = Firearm.AutomaticFireInterval;
+               
+            }
+
+            // Apply global scaling based on GetMaxSlow
+            //float scale = TimeSlowerManager.CalculateAppliedScale(this.transform);
+
+          
+            Firearm.AutomaticFireInterval = (float)OriginalFireRate * TimeSlowerManager.CurrentSpeedScale;
+        }
+    }
+
+
+
+    [SkipSerialisation]
     public class PBTimeManaged : TimeManaged
     {
         public PhysicalBehaviour pb;
-        public float? OriginalGravityScale = null;
-        public float? OriginalAng = null;
-        public float? OriginalDrg = null;
+        private float? OriginalGravityScale = null;
+        private float? OriginalAng = null;
+        private float? OriginalDrag = null;
         public override void AfterAwake()
         {
+            
         }
+
         public override void UpdateTimeScale()
         {
             if (OriginalGravityScale == null)
             {
                 OriginalGravityScale = pb.rigidbody.gravityScale;
                 OriginalAng = pb.rigidbody.angularDrag;
-
+                OriginalDrag = pb.rigidbody.drag;
             }
 
-            if (TimeSlowerManager.CurrentUser != null && TimeSlowerManager.CurrentUser.thisGameobject.transform.root == this.transform.root)
-            {
-                return;
-            }
+            // Apply global scaling based on GetMaxSlow
+            float scale = TimeSlowerManager.CalculateAppliedScale(this.transform);
 
-            if (TimeSlowerManager.CurrentUser != null && TimeSlowerManager.PassiveUsers.TryGetValue(transform.root.gameObject, out TimeSlowerManager.ITimeStopUser user))
-            {
-                pb.rigidbody.gravityScale = (float)OriginalGravityScale * (Mathf.Clamp(TimeSlowerManager.MaxSpeedScale, 1, TimeSlowerManager.CurrentUser.SelectedSpeedScale) / TimeSlowerManager.CurrentSpeedScale);
-                pb.rigidbody.angularDrag = (float)OriginalAng / (Mathf.Clamp(TimeSlowerManager.MaxSpeedScale, 1, TimeSlowerManager.CurrentUser.SelectedSpeedScale) / TimeSlowerManager.CurrentSpeedScale);
-            }
-            else
-            {
-                pb.rigidbody.gravityScale = (float)OriginalGravityScale / TimeSlowerManager.CurrentSpeedScale;
-                pb.rigidbody.angularDrag = (float)OriginalAng * TimeSlowerManager.CurrentSpeedScale;
-            }
+            pb.rigidbody.gravityScale = Mathf.Clamp((float)OriginalGravityScale / scale,0.01f,999);
+            pb.rigidbody.angularDrag = (float)OriginalAng * scale;
+            pb.rigidbody.drag = ((float)OriginalDrag * scale * 0.4f);
         }
     }
 
@@ -2399,21 +2773,17 @@ namespace Utility
     public class ParticlesTimeManaged : TimeManaged
     {
         public ParticleSystem ParticleSystemComponent;
-        public float OriginalPlaybackSpeed;
+        private float OriginalPlaybackSpeed;
+
         public override void AfterAwake()
         {
             OriginalPlaybackSpeed = ParticleSystemComponent.playbackSpeed;
         }
+
         public override void UpdateTimeScale()
         {
-            if (TimeSlowerManager.CurrentUser != null && TimeSlowerManager.PassiveUsers.TryGetValue(transform.root.gameObject, out TimeSlowerManager.ITimeStopUser user))
-            {
-                ParticleSystemComponent.playbackSpeed = OriginalPlaybackSpeed * Mathf.Clamp(TimeSlowerManager.MaxSpeedScale, 1, TimeSlowerManager.CurrentUser.SelectedSpeedScale) / TimeSlowerManager.CurrentSpeedScale;
-            }
-            else
-            {
-                ParticleSystemComponent.playbackSpeed = OriginalPlaybackSpeed / TimeSlowerManager.CurrentSpeedScale;
-            }
+            float scale = TimeSlowerManager.CurrentSpeedScale;
+            ParticleSystemComponent.playbackSpeed = OriginalPlaybackSpeed / scale;
         }
     }
 
@@ -2421,45 +2791,36 @@ namespace Utility
     public class HumansTimeManaged : TimeManaged
     {
         public PersonBehaviour Person;
-        public float OriginalStrength;
-        public float OriginalImpactDamageMultiplier;
+        private float OriginalStrength;
+        private float OriginalImpactDamageMultiplier;
+
         public override void AfterAwake()
         {
             OriginalStrength = Person.Limbs[0].BaseStrength;
             OriginalImpactDamageMultiplier = Person.Limbs[0].ImpactDamageMultiplier;
         }
+
         public override void UpdateTimeScale()
         {
-            if (TimeSlowerManager.CurrentUser != null && TimeSlowerManager.CurrentUser.thisGameobject.transform.root == this.transform.root)
+            var appliedScale = TimeSlowerManager.CalculateAppliedScale(this.transform);
+            Debug.Log(appliedScale);
+
+            // Update ragdoll animations
+            foreach (RagdollPose poseState in Person.LinkedPoses.Values)
             {
-                return;
+                poseState.AnimationSpeedMultiplier = -1f / appliedScale;
             }
 
-            if (TimeSlowerManager.CurrentUser != null && TimeSlowerManager.PassiveUsers.TryGetValue(transform.root.gameObject, out TimeSlowerManager.ITimeStopUser user))
+            // Update limb properties
+            foreach (LimbBehaviour limb in Person.Limbs)
             {
-                foreach (RagdollPose poseState in Person.LinkedPoses.Values)
-                {
-                    poseState.AnimationSpeedMultiplier = -1f * Mathf.Clamp(TimeSlowerManager.MaxSpeedScale, 1, TimeSlowerManager.CurrentUser.SelectedSpeedScale) / TimeSlowerManager.CurrentSpeedScale;
-                }
-                foreach (LimbBehaviour limb in Person.Limbs)
-                {
-                    limb.BaseStrength = OriginalStrength * Mathf.Clamp(TimeSlowerManager.MaxSpeedScale, 1, TimeSlowerManager.CurrentUser.SelectedSpeedScale) / TimeSlowerManager.CurrentSpeedScale;
-                    limb.ImpactDamageMultiplier = OriginalImpactDamageMultiplier * TimeSlowerManager.CurrentSpeedScale / Mathf.Clamp(TimeSlowerManager.MaxSpeedScale, 1, TimeSlowerManager.CurrentUser.SelectedSpeedScale);
-                }
-            }
-            else
-            {
-                foreach (RagdollPose poseState in Person.LinkedPoses.Values)
-                {
-                    poseState.AnimationSpeedMultiplier = -1f / TimeSlowerManager.CurrentSpeedScale;
-                }
-                foreach (LimbBehaviour limb in Person.Limbs)
-                {
-                    limb.BaseStrength = OriginalStrength / TimeSlowerManager.CurrentSpeedScale;
-                    limb.ImpactDamageMultiplier = OriginalImpactDamageMultiplier * TimeSlowerManager.CurrentSpeedScale;
-                }
+                // Similar to before, but using appliedScale
+                limb.BaseStrength = OriginalStrength / appliedScale;
+                limb.ImpactDamageMultiplier = OriginalImpactDamageMultiplier * appliedScale;
             }
         }
+
+       
     }
 
 }

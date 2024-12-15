@@ -141,6 +141,7 @@ namespace ENSYS
             if (ENSYSCore.EnergySystemsUsers.ContainsKey(this.transform.root) == true)
                 ENSYSCore.EnergySystemsUsers.Remove(this.transform.root);
 
+
             OnDestroyEvent?.Invoke();
         }
 
@@ -162,6 +163,15 @@ namespace ENSYS
 
         private WaitForSeconds _cashedWait;
         public bool DeathLoss = true;
+
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+
+            Destroy(tagLib);
+        }
+
         protected override void Awake()
         {
             base.Awake();

@@ -74,6 +74,10 @@ namespace ENSYS
             {
                 foreach (GameObject Obj in Resources.FindObjectsOfTypeAll(typeof(GameObject)) as GameObject[])
                 {
+                    if(Obj.TryGetComponent(out FirearmBehaviour fire))
+                    {
+                        Obj.GetOrAddComponent<GunTimeManaged>().Firearm = fire;
+                    }
                     if (Obj.TryGetComponent(out PhysicalBehaviour phys))
                     {
                         Obj.GetOrAddComponent<PBTimeManaged>().pb = phys;
