@@ -2456,28 +2456,154 @@ namespace Utility
         private static float debugval = 1;
 
 
-        [HarmonyPatch(typeof(BallisticsEmitter), "BallisticIteration")]
-        public static class BallisticsEmitter_BallisticIteration_Transpiler
-        {
-            [HarmonyTranspiler]
-            public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
-            {
-                var getDeltaTime = AccessTools.PropertyGetter(typeof(UnityEngine.Time), nameof(UnityEngine.Time.deltaTime));
-                var getScaledDeltaTime = AccessTools.PropertyGetter(typeof(TimeSlowerManager), "ScaledDeltaTime");
 
-                foreach (var instruction in instructions)
+        [HarmonyPatch]
+        class DeltaTimePatches
+        {
+
+
+
+            public static float PatchMult = 1.0f;
+
+            static Assembly TargetAssembly()
+            {
+                // Adjust if necessary:
+                return AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
+            }
+
+            static IEnumerable<MethodBase> TargetMethods()
+            {
+                var assembly = TargetAssembly();
+                if (assembly == null)
+                    yield break;
+
+
+                // Debug.Log(typeof(LimbBehaviour).Namespace);
+                // Debug.Log(typeof(LimbBehaviour).Assembly.GetName().Name);
+                Type[] types;
+                try
                 {
-                    if (instruction.opcode == OpCodes.Call && Equals(instruction.operand, getDeltaTime))
+                    types = assembly.GetTypes();
+                }
+                catch (ReflectionTypeLoadException e)
+                {
+                    types = e.Types.Where(t => t != null).ToArray();
+                }
+
+                foreach (var type in types)
+                {
+                    // Only patch MonoBehaviour-derived types...
+                    if (!typeof(MonoBehaviour).IsAssignableFrom(type))
+                        continue;
+
+                    if (!typeof(MonoBehaviour).IsAssignableFrom(type))
+                        continue;
+
+                    // ... that are NOT in the UnityEngine namespace.
+                    // Adjust this condition if your scripts have a certain namespace pattern.
+                    if (type.Namespace != null)
+                        continue;
+
+
+                    //In case something will broke
+                    // if (Ignoretypes.Contains(type))
+                    //  continue;
+
+                    // Debug.Log(type.Name);
+                    MethodInfo[] methods;
+                    try
                     {
-                        yield return new CodeInstruction(OpCodes.Call, getScaledDeltaTime);
+                        methods = type.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
                     }
-                    else
+                    catch (NotSupportedException)
                     {
-                        yield return instruction;
+                        continue;
+                    }
+
+                    foreach (var method in methods)
+                    {
+
+                        // Skip abstract or no-body methods
+                        if (method.IsAbstract || method.IsVirtual || method.GetMethodBody() == null || method.GetBaseDefinition() != method)
+                            continue;
+
+
+
+                        if (method.IsAssembly) // indicates internal
+                            continue;
+
+                        if (method.ReturnType.IsPointer || method.GetParameters().Any(p => p.ParameterType.IsPointer))
+                            continue;
+
+                        // Ensure the method is from Assembly-CSharp
+                        if (method.DeclaringType.Assembly != assembly)
+                            continue;
+
+                        //LOG SUFFERING AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        // Debug.Log(method.Name + " " + method.DeclaringType.Name);
+
+                        yield return method;
                     }
                 }
             }
+            //In case something will broke, I HOPE NOT!!!!
+            //static HashSet<Type> Ignoretypes = new HashSet<Type>();
+
+            [HarmonyTranspiler]
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var code = new List<CodeInstruction>(instructions);
+
+                for (int i = 0; i < code.Count; i++)
+                {
+                    var instr = code[i];
+                    if ((instr.opcode == OpCodes.Call || instr.opcode == OpCodes.Callvirt) && instr.operand is MethodInfo mi)
+                    {
+                        if (mi.DeclaringType == typeof(Time) && mi.Name == "get_deltaTime")
+                        {
+                            code.InsertRange(i + 1, new[]
+                            {
+                        new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(DeltaTimePatches), nameof(PatchMult))),
+                       // new CodeInstruction(OpCodes.Ldsfld, TimeSlowerManager.CurrentSpeedScale), ERROR FOR SOME REASON AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBAAAAA AA ABAAA
+                        new CodeInstruction(OpCodes.Div)
+                    });
+                            i += 2;
+                        }
+                    }
+                }
+
+                return code;
+            }
         }
+
+
+
+        #region OldPatches
+        // OLD INDIVIDUAL PATCHES
+
+        //[HarmonyPatch(typeof(BallisticsEmitter), "BallisticIteration")]
+        //public static class BallisticsEmitter_BallisticIteration_Transpiler
+        //{
+        //    [HarmonyTranspiler]
+        //    public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        //    {
+        //        var getDeltaTime = AccessTools.PropertyGetter(typeof(UnityEngine.Time), nameof(UnityEngine.Time.deltaTime));
+        //        var getScaledDeltaTime = AccessTools.PropertyGetter(typeof(TimeSlowerManager), "ScaledDeltaTime");
+
+        //        foreach (var instruction in instructions)
+        //        {
+        //            if (instruction.opcode == OpCodes.Call && Equals(instruction.operand, getDeltaTime))
+        //            {
+        //                yield return new CodeInstruction(OpCodes.Call, getScaledDeltaTime);
+        //            }
+        //            else
+        //            {
+        //                yield return instruction;
+        //            }
+        //        }
+        //    }
+        //}
 
 
         //[HarmonyPatch(typeof(BlasterBehaviour), "Shoot")]
@@ -2510,26 +2636,26 @@ namespace Utility
 
 
 
-        [HarmonyPatch(typeof(BlasterboltBehaviour), "Update")]
-        public static class BlasterboltBehaviourPrefixPatch
-        {
-            public static Dictionary<BlasterboltBehaviour,float> InitialSpeed = new Dictionary<BlasterboltBehaviour, float>();
-            [HarmonyPrefix]
-            public static void PostFix(BlasterboltBehaviour __instance)
-            {
-                if(CurrentSpeedScale > 1.1)
-                {
-                    if(InitialSpeed.ContainsKey(__instance) == false)
-                    {
-                        InitialSpeed.Add(__instance, __instance.Speed);
-                    }
-                    __instance.Speed = InitialSpeed[__instance] / CurrentSpeedScale;
-                }
-              
-            }
-        }
+        //[HarmonyPatch(typeof(BlasterboltBehaviour), "Update")]
+        //public static class BlasterboltBehaviourPrefixPatch
+        //{
+        //    public static Dictionary<BlasterboltBehaviour,float> InitialSpeed = new Dictionary<BlasterboltBehaviour, float>();
+        //    [HarmonyPrefix]
+        //    public static void PostFix(BlasterboltBehaviour __instance)
+        //    {
+        //        if(CurrentSpeedScale > 1.1)
+        //        {
+        //            if(InitialSpeed.ContainsKey(__instance) == false)
+        //            {
+        //                InitialSpeed.Add(__instance, __instance.Speed);
+        //            }
+        //            __instance.Speed = InitialSpeed[__instance] / CurrentSpeedScale;
+        //        }
 
+        //    }
+        //}
 
+        #endregion
         public static float CalculateAppliedScale(Transform Obj)
         {
             var globalScale = TimeSlowerManager.CurrentSpeedScale;
@@ -2575,7 +2701,7 @@ namespace Utility
         {
             get
             {
-                return (ActiveUsers.Count == 0 ? 1f : ActiveUsers.Values.Max());
+                return ((ActiveUsers == null || ActiveUsers.Count == 0) ? 1f : ActiveUsers.Values.Max());
             }
         }
 
@@ -2593,6 +2719,7 @@ namespace Utility
         {
             get
             {
+                DeltaTimePatches.PatchMult = GetMaxSlow;
                 return GetMaxSlow;
             }
         }
@@ -2723,17 +2850,15 @@ namespace Utility
 
         public override void UpdateTimeScale()
         {
-            if (OriginalFireRate == null)
-            {
-                OriginalFireRate = Firearm.AutomaticFireInterval;
+         //   if (OriginalFireRate == null)
+        //    {
+          //      OriginalFireRate = Firearm.AutomaticFireInterval;
                
-            }
+          //  }
 
-            // Apply global scaling based on GetMaxSlow
-            //float scale = TimeSlowerManager.CalculateAppliedScale(this.transform);
 
           
-            Firearm.AutomaticFireInterval = (float)OriginalFireRate * TimeSlowerManager.CurrentSpeedScale;
+            //Firearm.AutomaticFireInterval = (float)OriginalFireRate * TimeSlowerManager.CurrentSpeedScale;
         }
     }
 
@@ -2777,13 +2902,14 @@ namespace Utility
 
         public override void AfterAwake()
         {
-            OriginalPlaybackSpeed = ParticleSystemComponent.playbackSpeed;
+            OriginalPlaybackSpeed = ParticleSystemComponent.main.simulationSpeed;
         }
 
         public override void UpdateTimeScale()
         {
             float scale = TimeSlowerManager.CurrentSpeedScale;
-            ParticleSystemComponent.playbackSpeed = OriginalPlaybackSpeed / scale;
+            var main = ParticleSystemComponent.main;
+            main.simulationSpeed = OriginalPlaybackSpeed / scale;
         }
     }
 
