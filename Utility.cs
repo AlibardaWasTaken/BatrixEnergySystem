@@ -2907,8 +2907,15 @@ namespace Utility
 
         public override void UpdateTimeScale()
         {
+            if (ParticleSystemComponent == null)
+                return;
+
+
+
             float scale = TimeSlowerManager.CurrentSpeedScale;
             var main = ParticleSystemComponent.main;
+
+
             main.simulationSpeed = OriginalPlaybackSpeed / scale;
         }
     }
