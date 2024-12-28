@@ -21,6 +21,99 @@ using Random = UnityEngine.Random;
 
 namespace Utility
 {
+    public static class TMPFactory
+    {
+        public static AudioSource CreateAudioSource(this GameObject gameObject, float volume = 1f, float blend = 1f)
+        {
+            var audioSource = gameObject.AddComponent<AudioSource>();
+            AddSoundToGlobal(audioSource, volume, blend);
+            return audioSource;
+        }
+
+
+        public static GameObject CreateTMP(Quaternion rotation, Vector3 position, float duration, string textToDisplay, Color textColor, float min = 0.1f, float fontmax = 3f)
+        {
+            var tmpobj = new GameObject("tmpobj");
+            var tmp = tmpobj.AddComponent<TextMeshPro>();
+
+            tmpobj.transform.rotation = rotation;
+            tmpobj.transform.position = position;
+
+            // Setup basic properties
+            tmp.fontSize = 3;
+            tmp.font = ModAPI.FindSpawnable("Holographic Display")
+                             .Prefab
+                             .transform
+                             .Find("Text")
+                             .GetComponent<TextMeshPro>().font;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.horizontalAlignment = HorizontalAlignmentOptions.Center;
+            tmp.verticalAlignment = VerticalAlignmentOptions.Middle;
+            tmp.fontSizeMax = fontmax;
+            tmp.fontSizeMin = min;
+            tmp.sortingOrder = 20;
+            tmp.renderer.sortingLayerName= "Foreground";
+            tmp.renderer.sortingOrder = 20;
+            tmp.enableAutoSizing = true;
+            tmp.text = ""; // Start empty for typewriter effect
+            tmp.color = textColor;
+
+            // Add a helper component to handle typewriter and fade logic
+            var helper = tmpobj.AddComponent<TypewriterFadeHelper>();
+            helper.Initialize(tmp, textToDisplay, duration);
+
+            return tmpobj;
+        }
+
+        private class TypewriterFadeHelper : MonoBehaviour
+        {
+            private TextMeshPro tmp;
+            private string fullText;
+            private float duration;
+            private float typeSpeed = 0.05f; 
+            private Coroutine typeCoroutine;
+
+            public void Initialize(TextMeshPro targetTMP, string text, float showDuration)
+            {
+                tmp = targetTMP;
+                fullText = text;
+                duration = showDuration;
+                typeCoroutine = StartCoroutine(TypewriterRoutine());
+            }
+
+            private IEnumerator TypewriterRoutine()
+            {
+                // Typewriter effect
+                tmp.text = "";
+                for (int i = 0; i < fullText.Length; i++)
+                {
+                    tmp.text += fullText[i];
+                    yield return new WaitForSeconds(typeSpeed);
+                }
+
+            
+                yield return new WaitForSeconds(duration);
+
+               
+                float fadeTime = 1f; 
+                Color initialColor = tmp.color;
+                float elapsed = 0f;
+
+                while (elapsed < fadeTime)
+                {
+                    elapsed += Time.deltaTime;
+                    float alpha = Mathf.Lerp(1f, 0f, elapsed / fadeTime);
+                    tmp.color = new Color(initialColor.r, initialColor.g, initialColor.b, alpha);
+                    yield return null;
+                }
+
+                // Destroy after fully faded
+                Destroy(gameObject);
+            }
+        }
+    }
+
+
     public static class LerpUtilities
     {
 
@@ -81,6 +174,21 @@ namespace Utility
             ENSYSCore.IEnumStarter.StartCoroutine(MoveCoroutine(objectToMove, targetPosition, duration));
         }
         
+        public static void RotateAtan(this Transform transf, Vector3 RotatePos, float offset)
+        {
+            var dirLowFront = transf.transform.position - RotatePos;
+            float FrontLowDir = Mathf.Atan2(dirLowFront.y, dirLowFront.x) * Mathf.Rad2Deg;
+
+
+                FrontLowDir += offset;
+
+
+
+            transf.rotation = Quaternion.Euler(0, 0, FrontLowDir);
+
+        }
+
+
         private static IEnumerator MoveCoroutine(Transform objectToMove, Vector3 targetPosition, float duration)
         {
             Vector3 startPosition = objectToMove.position;
@@ -170,8 +278,40 @@ namespace Utility
         }
     }
 
+    public static class PhysicalMethods
+    {
+        public static PhysicalBehaviour AddPhysComp(this GameObject gameObject, string propertyname = "Metal", bool EraseSounds = false)
+        {
+            gameObject.layer = LayerMask.NameToLayer("Objects");
+            gameObject.GetOrAddComponent<Rigidbody2D>();
+            gameObject.GetOrAddComponent<SpriteRenderer>();
+            if (!gameObject.GetComponent<Collider2D>())
+            {
+                gameObject.GetOrAddComponent<BoxCollider2D>();
+            }
+            PhysicalBehaviour physicalBehaviour = gameObject.AddComponent<PhysicalBehaviour>();
+            physicalBehaviour.Properties = ModAPI.FindPhysicalProperties(propertyname);
+            physicalBehaviour.SpawnSpawnParticles = false;
+            gameObject.AddComponent<AudioSourceTimeScaleBehaviour>();
+            if(EraseSounds == true)
+            {
+                physicalBehaviour.OverrideShotSounds = Array.Empty<AudioClip>();
+                physicalBehaviour.OverrideImpactSounds = Array.Empty<AudioClip>();
+            }
+
+            return physicalBehaviour;
+        }
+    } 
+
     public static class UtilityMethods
     {
+
+
+
+       public static void Destroy( this UnityEngine.Object obj, float delay = 0)
+        {
+            Destroy(obj, delay);
+        }
 
         public static void CreateFloatDialog(string title, string placeholder, Action<float> output)
         {
@@ -544,7 +684,64 @@ namespace Utility
             new GameObject("ENSYS_FrameDELAY").AddComponent<DelayerFrameCaller>().Init(action);
         }
 
+        public static void MakeDamagableCloth(this GameObject obj, GameObject toconnect , float mult = 0.4f)
+        {
+            var spr = obj.GetComponent<SpriteRenderer>();
+            var limb = toconnect.GetComponent<LimbBehaviour>();
+            if (spr == null || limb == null)
+            {
+                return;
+            }
 
+            var l =spr.gameObject.AddComponent<DamagableLinked>();
+            l.limb = limb;
+            l.spr = spr;
+            l.DamageMultiplier = mult;
+
+        }
+
+        public class DamagableLinked : MonoBehaviour
+        {
+            public LimbBehaviour limb;
+            public SpriteRenderer spr;
+            public static Material humanMat;
+            public float DamageMultiplier = 0.4f;
+            public void Start()
+            {
+                if(humanMat == null)
+                {
+                    humanMat = Instantiate(ModAPI.FindSpawnable("Human").Prefab.transform.Find("Head").GetComponent<SpriteRenderer>().material);
+                    humanMat.SetTexture("_MainTex", null);
+                    humanMat.SetTexture("_FleshTex", null);
+                    humanMat.SetTexture("_BoneTex", null);
+                    humanMat.SetFloat("_DamageMultiplier", 0.6f);
+                   
+                }
+                var newmat = Instantiate(humanMat);
+                newmat.SetTexture("_MainTex", spr.sprite.texture);
+                newmat.SetFloat("_DamageMultiplier", DamageMultiplier);
+                newmat.SetColor("_BloodColor", limb.CirculationBehaviour.GetComputedColor());
+                spr.material = newmat;
+            }
+
+            protected  void Update()
+            {
+                if(limb == null)
+                {
+                    Destroy(this);
+                }
+
+                spr.material.SetFloat("_AcidProgress", limb.SkinMaterialHandler.renderer.material.GetFloat("_AcidProgress"));
+                spr.material.SetFloat("_BurnProgress", limb.SkinMaterialHandler.renderer.material.GetFloat("_BurnProgress"));
+
+
+                spr.material.SetVectorArray(ShaderProperties.Get("_DamagePoints"), limb.SkinMaterialHandler.renderer.material.GetVectorArray(ShaderProperties.Get("_DamagePoints")));
+                spr.material.SetInt(ShaderProperties.Get("_DamagePointCount"), limb.SkinMaterialHandler.renderer.material.GetInt(ShaderProperties.Get("_DamagePointCount")));
+                
+
+
+            }
+        }
 
 
         public static void SetSlicedSkinForLimb(this LimbBehaviour limb, Sprite spr, Sprite flsprite, Sprite sksprite, Texture2D damage, float scale = 1)
@@ -799,6 +996,30 @@ namespace Utility
             Source.spatialBlend = spatialBlend;
             Source.volume = volume;
         }
+
+
+
+        public static void AddGameobjSoundToGlobal(GameObject obj, float volume = 1, float spatialBlend = 1)
+        {
+            AudioSource Source = obj.GetComponent<AudioSource>();
+            if (Source == null)
+            {
+                return;
+            }
+
+            GameObject.FindObjectOfType<Global>().AddAudioSource(Source, false);
+            Source.outputAudioMixerGroup = GameObject.FindObjectOfType<Global>().SoundEffects;
+
+            Source.spatialBlend = spatialBlend;
+            Source.volume = volume;
+        }
+
+
+
+
+
+
+
 
         public static void NoChildCollide(this GameObject instance)
         {
@@ -2497,8 +2718,8 @@ namespace Utility
                     if (!typeof(MonoBehaviour).IsAssignableFrom(type))
                         continue;
 
-                    if (!typeof(MonoBehaviour).IsAssignableFrom(type))
-                        continue;
+                   // if (!typeof(MonoBehaviour).IsAssignableFrom(type))
+                     //   continue;
 
                     // ... that are NOT in the UnityEngine namespace.
                     // Adjust this condition if your scripts have a certain namespace pattern.
@@ -2542,7 +2763,7 @@ namespace Utility
 
                         //LOG SUFFERING AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
                         // Debug.Log(method.Name + " " + method.DeclaringType.Name);
-
+                        
                         yield return method;
                     }
                 }
@@ -2577,6 +2798,19 @@ namespace Utility
             }
         }
 
+
+        //[HarmonyPatch(typeof(Global), "UpdatePitch")]
+        //public static class globalpatch
+        //{
+        //    [HarmonyPrefix]
+        //    public static bool Prefix(Global __instance, ref float timeScale)
+        //    {
+            
+        //        timeScale /= CurrentSpeedScale;
+       
+        //        return true;
+        //    }
+        //}
 
 
         #region OldPatches
