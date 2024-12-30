@@ -156,20 +156,21 @@
     <None Include="mod.json" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AbstractEnergySystem.cs" />
-    <Compile Include="AbilityBase.cs" />
-    <Compile Include="AbstractLevelSystem.cs" />
-    <Compile Include="CommonPassives.cs" />
-    <Compile Include="DurabilityBaseLimb.cs" />
-    <Compile Include="ENSYSCore.cs" />
-    <Compile Include="Interfaces.cs" />
+    <Compile Include="S\Ensys\AbstractEnergySystem.cs" />
+    <Compile Include="S\Abil\AbilityBase.cs" />
+    <Compile Include="S\Ensys\AbstractLevelSystem.cs" />
+    <Compile Include="S\Abil\CommonPassives.cs" />
+    <Compile Include="S\Abil\DurabilityBaseLimb.cs" />
+    <Compile Include="S\Core\ENSYSCore.cs" />
+    <Compile Include="S\Core\Interfaces.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="RegrowthModule.cs" />
-    <Compile Include="Utility.cs" />
+    <Compile Include="S\Regen\RegrowthModule.cs" />
+    <Compile Include="S\tools\slicer.cs" />
+    <Compile Include="S\tools\Utility.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -181,6 +182,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Resources\HarmonyFixer.dll" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSHARP.Targets" />
   <ProjectExtensions>
     <VisualStudio AllowExistingFolder="true" />
