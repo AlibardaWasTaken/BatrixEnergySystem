@@ -377,6 +377,55 @@ namespace ENSYS
 
         }
 
+
+
+        [HarmonyPatch]
+        public static class ZOOIII_WHYYYY_TrustCachePatch
+        {
+       
+            static MethodBase TargetMethod()
+            {
+             
+                var assembly = typeof(NoDeselectUi).Assembly;
+
+
+                var trustCacheType = assembly.GetType("TrustCache");
+
+
+                return AccessTools.DeclaredMethod(trustCacheType, "AssertCaller");
+            }
+
+            // Harmony corrupts this thing, this should fix it while remain the same functional
+            [HarmonyPrefix]
+            public static bool Prefix(string action)
+            {
+                Assembly callingAssembly = Assembly.GetCallingAssembly();
+      
+
+                var unityEngineAssembly = typeof(UnityEngine.GameObject).Assembly;
+                var ppgassembly = typeof(LimbBehaviour).Assembly;
+
+            
+
+                if (callingAssembly == unityEngineAssembly)
+                {
+                    return false;
+                }else if (callingAssembly == ppgassembly)
+                {
+                    return false;
+                }
+
+
+                throw new Exception(
+    string.Format("(P) SUSPICIOUS BEHAVIOUR: \"{0}\" attempted to {1}", callingAssembly, action));
+
+            }
+
+        }
+
+
+
+
         public static EnergySystem SetUpEnergySystem(Transform target, int MaxEnergy, int RegenEnergy, float RegenTime, bool StartMax, System.Action<GameObject> OnEndAction)
         {
             if (EnergySystemsUsers.ContainsKey(target.root) == false)

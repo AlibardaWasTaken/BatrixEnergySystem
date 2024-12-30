@@ -1,4 +1,5 @@
-﻿using ENSYS;
+﻿
+using ENSYS;
 using HarmonyLib;
 using System;
 using System.Collections;
@@ -15,8 +16,15 @@ using static ENSYS.ENSYSCore;
 using static Utility.UtilityMethods;
 using Random = UnityEngine.Random;
 
+
+
 namespace Utility
 {
+
+
+  
+
+
     public static class TMPFactory
     {
         public static AudioSource CreateAudioSource(this GameObject gameObject, float volume = 1f, float blend = 1f)
@@ -635,6 +643,7 @@ namespace Utility
 
             if(damage != null)
             {
+                
                damage = TextureAutoSlicerRuntime.TrimTexture(skinData.HeadSpr.texture, damage);
             }
 
@@ -1069,6 +1078,7 @@ namespace Utility
         {
             canvas = GameObject.Find("Canvas").GetComponent<Canvas>();
         }
+        
 
         public static void CacheHumans()
         {
