@@ -684,7 +684,7 @@ namespace Utility
             new GameObject("ENSYS_FrameDELAY").AddComponent<DelayerFrameCaller>().Init(action);
         }
 
-        public static void MakeDamagableCloth(this GameObject obj, GameObject toconnect , float mult = 0.4f)
+        public static void MakeDamagableCloth(this GameObject obj, Material clothmat, GameObject toconnect , float mult = 0.4f)
         {
             var spr = obj.GetComponent<SpriteRenderer>();
             var limb = toconnect.GetComponent<LimbBehaviour>();
@@ -697,6 +697,7 @@ namespace Utility
             l.limb = limb;
             l.spr = spr;
             l.DamageMultiplier = mult;
+            l.Material = clothmat;
 
         }
 
@@ -704,20 +705,11 @@ namespace Utility
         {
             public LimbBehaviour limb;
             public SpriteRenderer spr;
-            public static Material humanMat;
+            public  Material Material;
             public float DamageMultiplier = 0.4f;
             public void Start()
             {
-                if(humanMat == null)
-                {
-                    humanMat = Instantiate(ModAPI.FindSpawnable("Human").Prefab.transform.Find("Head").GetComponent<SpriteRenderer>().material);
-                    humanMat.SetTexture("_MainTex", null);
-                    humanMat.SetTexture("_FleshTex", null);
-                    humanMat.SetTexture("_BoneTex", null);
-                    humanMat.SetFloat("_DamageMultiplier", 0.6f);
-                   
-                }
-                var newmat = Instantiate(humanMat);
+                var newmat = Instantiate(Material);
                 newmat.SetTexture("_MainTex", spr.sprite.texture);
                 newmat.SetFloat("_DamageMultiplier", DamageMultiplier);
                 newmat.SetColor("_BloodColor", limb.CirculationBehaviour.GetComputedColor());
@@ -733,7 +725,7 @@ namespace Utility
 
                 spr.material.SetFloat("_AcidProgress", limb.SkinMaterialHandler.renderer.material.GetFloat("_AcidProgress"));
                 spr.material.SetFloat("_BurnProgress", limb.SkinMaterialHandler.renderer.material.GetFloat("_BurnProgress"));
-
+              
 
                 spr.material.SetVectorArray(ShaderProperties.Get("_DamagePoints"), limb.SkinMaterialHandler.renderer.material.GetVectorArray(ShaderProperties.Get("_DamagePoints")));
                 spr.material.SetInt(ShaderProperties.Get("_DamagePointCount"), limb.SkinMaterialHandler.renderer.material.GetInt(ShaderProperties.Get("_DamagePointCount")));
